@@ -37,24 +37,24 @@ type Instruction struct {
 }
 
 type ReadyCmd struct {
-	cmd string
+	Cmd string
 }
 
-func (r ReadyCmd) String() string { return r.cmd }
+func (r ReadyCmd) String() string { return r.Cmd }
 
 func WaitForPort(port int) ReadyCmd {
-	return ReadyCmd{cmd: fmt.Sprintf("ss -tuln | grep :%d", port)}
+	return ReadyCmd{Cmd: fmt.Sprintf("ss -tuln | grep :%d", port)}
 }
 
 func WaitForFile(filename string) ReadyCmd {
-	return ReadyCmd{cmd: fmt.Sprintf("[ -f %s ]", filename)}
+	return ReadyCmd{Cmd: fmt.Sprintf("[ -f %s ]", filename)}
 }
 
 func WaitForTimeout(timeoutMs int) ReadyCmd {
 	if timeoutMs < 1000 {
 		timeoutMs = 1000
 	}
-	return ReadyCmd{cmd: fmt.Sprintf("sleep %.3f", float64(timeoutMs)/1000.0)}
+	return ReadyCmd{Cmd: fmt.Sprintf("sleep %.3f", float64(timeoutMs)/1000.0)}
 }
 
 type registryConfig struct {
@@ -190,7 +190,7 @@ func (t *TemplateBuilder) SkipCache() *TemplateBuilder {
 
 func (t *TemplateBuilder) SetStartCmd(startCmd string, readyCmd ReadyCmd) *TemplateBuilder {
 	t.startCmd = startCmd
-	t.readyCmd = readyCmd.cmd
+	t.readyCmd = readyCmd.Cmd
 	return t
 }
 
