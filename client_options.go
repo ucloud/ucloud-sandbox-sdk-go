@@ -1,0 +1,26 @@
+package sandbox
+
+import "time"
+
+// ClientOption configures Client construction.
+type ClientOption func(*ConnectionConfig)
+
+// WithInsecureSkipTLS disables TLS certificate verification for sandbox HTTP calls.
+func WithInsecureSkipTLS(skip bool) ClientOption {
+	return func(c *ConnectionConfig) { c.InsecureSkipTLS = skip }
+}
+
+// WithDebug routes sandbox traffic to localhost (for local envd debugging).
+func WithDebug(debug bool) ClientOption {
+	return func(c *ConnectionConfig) { c.Debug = debug }
+}
+
+// WithRequestTimeout sets the default HTTP timeout for control-plane requests.
+func WithRequestTimeout(timeout time.Duration) ClientOption {
+	return func(c *ConnectionConfig) { c.RequestTimeout = timeout }
+}
+
+// WithAPIURL overrides the control-plane base URL (default https://api.{domain}).
+func WithAPIURL(url string) ClientOption {
+	return func(c *ConnectionConfig) { c.APIURL = url }
+}
