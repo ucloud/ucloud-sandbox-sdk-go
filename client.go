@@ -209,6 +209,36 @@ func (c *Client) SnapshotExists(ctx context.Context, snapshotID string) (bool, e
 	return false, nil
 }
 
+// ListTemplates returns a paginator for listing templates (使用 Paginator 模式，与 ListSandboxes/ListSnapshots 一致)
+func (c *Client) ListTemplates(ctx context.Context) *Paginator[TemplateInfo] {
+	return newPaginator(0, func(ctx context.Context, token string, limit int) ([]TemplateInfo, string, error) {
+		path := "/v2/templates"
+		sep := "?"
+		if token != "" {
+			path += sep + "nextToken=" + url.QueryEscape(token)
+			sep = "&"
+		}
+		if limit > 0 {
+			path += sep + fmt.Sprintf("limit=%d", limit)
+		}
+
+		var templates []TemplateInfo
+		if err := c.doRequest(ctx, http.MethodGet, path, nil, &templates); err != nil {
+			return nil, "", err
+		}
+
+		return templates, "", nil
+	})
+}
+
+func (c *Client) DeleteTemplate(ctx context.Context, templateID string) error {
+	err := c.doRequest(ctx, http.MethodDelete, "/templates/"+url.PathEscape(templateID), nil, nil)
+	if err != nil {
+		return fmt.Errorf("delete template %s: %w", templateID, err)
+	}
+	return nil
+}
+
 func (c *Client) doRequest(ctx context.Context, method, path string, body, result any) error {
 	fullURL := c.config.APIURL + path
 

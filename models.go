@@ -139,3 +139,25 @@ type FilesystemEvent struct {
 
 // ExpiredAtUnix returns sandbox expiry as a Unix timestamp.
 func (i *SandboxInfo) ExpiredAtUnix() int64 { return i.EndAt.Unix() }
+
+type TemplateInfo struct {
+	TemplateID    string    `json:"templateID"`
+	BuildID       string    `json:"buildID,omitempty"`
+	Names         []string  `json:"names,omitempty"`   // v2 API: namespace/alias format
+	Aliases       []string  `json:"aliases,omitempty"` // deprecated but still returned
+	Public        bool      `json:"public"`
+	CPUCount      int       `json:"cpuCount"`
+	MemoryMB      int       `json:"memoryMB"`
+	DiskSizeMB    int       `json:"diskSizeMB,omitempty"`
+	CreatedAt     time.Time `json:"createdAt"`
+	UpdatedAt     time.Time `json:"updatedAt,omitempty"`
+	LastSpawnedAt time.Time `json:"lastSpawnedAt,omitempty"`
+	SpawnCount    int       `json:"spawnCount,omitempty"`
+	BuildCount    int       `json:"buildCount,omitempty"`
+	EnvdVersion   string    `json:"envdVersion,omitempty"`
+	BuildStatus   string    `json:"buildStatus,omitempty"` // building, waiting, ready, error, uploaded
+	CreatedBy     *struct {
+		Email string `json:"email,omitempty"`
+		ID    string `json:"id,omitempty"`
+	} `json:"createdBy,omitempty"`
+}
