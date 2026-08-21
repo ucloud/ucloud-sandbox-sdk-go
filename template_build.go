@@ -16,6 +16,7 @@ const (
 	BuildStatusWaiting  TemplateBuildStatus = "waiting"
 	BuildStatusReady    TemplateBuildStatus = "ready"
 	BuildStatusError    TemplateBuildStatus = "error"
+	BuildStatusUploaded TemplateBuildStatus = "uploaded"
 )
 
 type BuildInfo struct {

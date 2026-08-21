@@ -252,6 +252,13 @@ func (c *Client) DeleteTemplate(ctx context.Context, templateID string) error {
 }
 
 func (c *Client) doRequest(ctx context.Context, method, path string, body, result any) error {
+	_, err := c.doRequestWithHeaders(ctx, method, path, body, result)
+	return err
+}
+
+// doRequestWithHeaders behaves like doRequest but also returns the response headers,
+// which some endpoints use to carry pagination cursors.
+func (c *Client) doRequestWithHeaders(ctx context.Context, method, path string, body, result any) (http.Header, error) {
 	fullURL := c.config.APIURL + path
 
 	if body == nil && methodHasJSONBody(method) {
@@ -262,14 +269,14 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body, resul
 	if body != nil {
 		data, err := json.Marshal(body)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		reqBody = bytes.NewReader(data)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, method, fullURL, reqBody)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
@@ -285,25 +292,25 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body, resul
 	}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return err
+		return resp.Header, err
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return mapHTTPError(resp.StatusCode, string(respBody))
+		return resp.Header, mapHTTPError(resp.StatusCode, string(respBody))
 	}
 	if result == nil || len(respBody) == 0 {
-		return nil
+		return resp.Header, nil
 	}
 	if raw, ok := result.(*json.RawMessage); ok {
 		*raw = append((*raw)[:0], respBody...)
-		return nil
+		return resp.Header, nil
 	}
-	return json.Unmarshal(respBody, result)
+	return resp.Header, json.Unmarshal(respBody, result)
 }
 
 func methodHasJSONBody(method string) bool {
