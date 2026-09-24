@@ -96,13 +96,7 @@ func newConn(httpClient *http.Client, baseURL, sandboxID, accessToken, trafficTo
 		Version: version,
 	}
 
-	interceptor := connect.WithInterceptors(connect.UnaryInterceptorFunc(
-		func(next connect.UnaryFunc) connect.UnaryFunc {
-			return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
-				conn.applyHeaders(req.Header())
-				return next(ctx, req)
-			}
-		}))
+	interceptor := connect.WithInterceptors(headerInterceptor{conn: conn})
 
 	conn.Process = processconnect.NewProcessClient(httpClient, baseURL, interceptor)
 	conn.Filesystem = filesystemconnect.NewFilesystemClient(httpClient, baseURL, interceptor)
@@ -128,6 +122,38 @@ func (c *Connection) applyHeaders(header http.Header) {
 	for key, value := range c.headers {
 		header.Set(key, value)
 	}
+}
+
+// headerInterceptor puts envd's headers on every outgoing call, streaming ones
+// included.
+//
+// connect.UnaryInterceptorFunc would be the obvious way to write this, but it
+// is documented as having no effect on streaming RPCs. Process.Start,
+// Process.Connect and Filesystem.WatchDir are all server streams, so with that
+// interceptor they reached envd carrying no access token and were rejected
+// with a 401 — which surfaced only once the stream was read, not when the call
+// was made.
+type headerInterceptor struct{ conn *Connection }
+
+func (i headerInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
+	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
+		i.conn.applyHeaders(req.Header())
+		return next(ctx, req)
+	}
+}
+
+func (i headerInterceptor) WrapStreamingClient(next connect.StreamingClientFunc) connect.StreamingClientFunc {
+	return func(ctx context.Context, spec connect.Spec) connect.StreamingClientConn {
+		conn := next(ctx, spec)
+		i.conn.applyHeaders(conn.RequestHeader())
+		return conn
+	}
+}
+
+// WrapStreamingHandler is the server half of the interface, which this client
+// never exercises.
+func (i headerInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFunc) connect.StreamingHandlerFunc {
+	return next
 }
 
 func (c *Connection) SandboxRequest[T any](msg *T, sbx *api.Sandbox) *connect.Request[T] {

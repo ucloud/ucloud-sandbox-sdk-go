@@ -90,8 +90,10 @@ func newHTTPClient(r resolved) *http.Client {
 
 	var rt http.RoundTripper = tr
 	if r.retries > 0 {
-		rt = &retryTransport{base: tr, retries: r.retries}
+		rt = &retryTransport{base: rt, retries: r.retries}
 	}
+	// Outermost, so it sees the response a retry finally settled on.
+	rt = &errorDetailTransport{base: rt}
 
 	timeout := r.requestTimeout
 	if timeout <= 0 {
