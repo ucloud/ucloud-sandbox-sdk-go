@@ -56,22 +56,6 @@ func FromImage(image string) *Builder {
 	}
 }
 
-// FromImageAuth starts the template from an image in a private registry.
-func FromImageAuth(image, username, password string) *Builder {
-	registry := &api.FromImageRegistry{}
-	registry.FromGeneralRegistry(api.GeneralRegistry{
-		Type:     api.Registry,
-		Username: username,
-		Password: password,
-	})
-	return &Builder{
-		req: api.TemplateBuildStartV2{
-			FromImage:         &image,
-			FromImageRegistry: registry,
-		},
-	}
-}
-
 // FromTemplate starts the template from another template rather than an image.
 func FromTemplate(template string) *Builder {
 	return &Builder{
@@ -89,6 +73,17 @@ func FromBaseImage() *Builder {
 
 		baseImage: true,
 	}
+}
+
+func (b *Builder) SetImageRegistryAuth(username, password string) *Builder {
+	registry := &api.FromImageRegistry{}
+	registry.FromGeneralRegistry(api.GeneralRegistry{
+		Type:     api.Registry,
+		Username: username,
+		Password: password,
+	})
+	b.req.FromImageRegistry = registry
+	return b
 }
 
 func (b *Builder) Force(f bool) *Builder {
