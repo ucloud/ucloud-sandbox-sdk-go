@@ -21,8 +21,8 @@ type Pty struct {
 	conn *envd.Connection
 }
 
-// PtyHandle is an open pseudo-terminal.
-type PtyHandle struct {
+// Handle is an open pseudo-terminal.
+type Handle struct {
 	// PID is the process ID inside the sandbox.
 	PID int
 
@@ -33,8 +33,8 @@ type PtyHandle struct {
 	result *commands.Result
 }
 
-// PtySize is a pseudo-terminal's dimensions, in character cells.
-type PtySize struct {
+// Size is a pseudo-terminal's dimensions, in character cells.
+type Size struct {
 	Rows int
 	Cols int
 }
@@ -48,10 +48,10 @@ func New(sbx *api.Sandbox, conn *envd.Connection) *Pty {
 
 // Output delivers the terminal's bytes as they arrive. It is closed when the
 // terminal ends.
-func (h *PtyHandle) Output() <-chan []byte { return h.output }
+func (h *Handle) Output() <-chan []byte { return h.output }
 
 // Wait blocks until the terminal ends and reports how it exited.
-func (h *PtyHandle) Wait(ctx context.Context) (*commands.Result, error) {
+func (h *Handle) Wait(ctx context.Context) (*commands.Result, error) {
 	select {
 	case <-ctx.Done():
 		return nil, ctx.Err()
@@ -64,24 +64,24 @@ func (h *PtyHandle) Wait(ctx context.Context) (*commands.Result, error) {
 }
 
 // Kill terminates the terminal's process.
-func (h *PtyHandle) Kill(ctx context.Context) (bool, error) {
+func (h *Handle) Kill(ctx context.Context) (bool, error) {
 	return h.pty.Kill(ctx, h.PID)
 }
 
 // SendStdin writes bytes to the terminal. Send 0x04 for Ctrl-D, which is how a
 // PTY signals EOF.
-func (h *PtyHandle) SendStdin(ctx context.Context, data []byte) error {
+func (h *Handle) SendStdin(ctx context.Context, data []byte) error {
 	return h.pty.SendStdin(ctx, h.PID, data)
 }
 
 // Resize tells the terminal its new dimensions, so full-screen programs redraw
 // correctly.
-func (h *PtyHandle) Resize(ctx context.Context, size PtySize) error {
+func (h *Handle) Resize(ctx context.Context, size Size) error {
 	return h.pty.Resize(ctx, h.PID, size)
 }
 
 // ptySize converts a size into the proto message.
-func ptySize(size PtySize) *process.PTY {
+func ptySize(size Size) *process.PTY {
 	return &process.PTY{
 		Size: &process.PTY_Size{
 			Cols: uint32(size.Cols),
@@ -91,7 +91,7 @@ func ptySize(size PtySize) *process.PTY {
 }
 
 // consume drains a PTY stream into the handle.
-func (h *PtyHandle) consume(stream commands.ProcessStream) {
+func (h *Handle) consume(stream commands.ProcessStream) {
 	defer close(h.done)
 	defer close(h.output)
 	defer stream.Close()
@@ -155,7 +155,7 @@ func (p *Pty) SendStdin(ctx context.Context, pid int, data []byte) error {
 }
 
 // Resize tells a terminal its new dimensions.
-func (p *Pty) Resize(ctx context.Context, pid int, size PtySize) error {
+func (p *Pty) Resize(ctx context.Context, pid int, size Size) error {
 	req := &process.UpdateRequest{
 		Process: commands.SelectorForPID(pid),
 		Pty:     ptySize(size),
@@ -172,8 +172,8 @@ func (p *Pty) Resize(ctx context.Context, pid int, size PtySize) error {
 const ptyOutputBuffer = 64
 
 // newPtyHandle builds a handle with its channels ready.
-func newPtyHandle(p *Pty, pid int) *PtyHandle {
-	return &PtyHandle{
+func newPtyHandle(p *Pty, pid int) *Handle {
+	return &Handle{
 		PID:    pid,
 		pty:    p,
 		output: make(chan []byte, ptyOutputBuffer),

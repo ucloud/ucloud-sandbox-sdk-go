@@ -10,7 +10,7 @@ import (
 
 // Connect attaches to a pseudo-terminal already open in the sandbox, so it can
 // be driven from a different client than the one that created it.
-func (p *Pty) Connect(ctx context.Context, pid int, opts commands.Options) (*PtyHandle, error) {
+func (p *Pty) Connect(ctx context.Context, pid int, opts commands.Options) (*Handle, error) {
 	req := &process.ConnectRequest{Process: commands.SelectorForPID(pid)}
 
 	stream, err := p.conn.Process.Connect(ctx, p.conn.SandboxRequest(req, p.sbx))

@@ -12,7 +12,7 @@ import (
 //
 // The caller must drain PtyHandle.Output, or the terminal stalls once its
 // buffer fills.
-func (p *Pty) Create(ctx context.Context, size PtySize, opts commands.Options) (*PtyHandle, error) {
+func (p *Pty) Create(ctx context.Context, size Size, opts commands.Options) (*Handle, error) {
 	config := &process.ProcessConfig{
 		Cmd:  "/bin/bash",
 		Args: []string{"-i", "-l"},
