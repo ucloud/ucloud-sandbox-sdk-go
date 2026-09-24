@@ -13,6 +13,10 @@ const NextTokenHeader = "X-Next-Token"
 // FetchPageFunc retrieves one page. It receives the cursor for the page to
 // fetch — empty for the first — and returns the page's items along with the
 // cursor for the page after it. An empty cursor means this was the last page.
+//
+// An implementation must send the cursor it is given as the request's
+// nextToken. One that ignores it asks for the first page every time, so the
+// same page comes back carrying the same cursor and the walk never ends.
 type FetchPageFunc[T any] func(ctx context.Context, token string) ([]T, string, error)
 
 // Paginator walks a paged listing one page at a time. Create one with
