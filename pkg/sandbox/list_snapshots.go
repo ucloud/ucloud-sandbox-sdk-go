@@ -11,23 +11,8 @@ import (
 // made until the paginator is walked.
 //
 // GET /snapshots
-func (s *Service) ListSnapshots(ctx context.Context, opts ListSnapshotsOptions) *transport.Paginator[SnapshotInfo] {
-	return transport.NewPaginator(func(ctx context.Context, token string) ([]SnapshotInfo, string, error) {
-		params := &api.GetSnapshotsParams{}
-		if token != "" {
-			params.NextToken = &token
-		}
-		if opts.Limit > 0 {
-			limit := int32(opts.Limit)
-			params.Limit = &limit
-		}
-		if opts.SandboxID != "" {
-			params.SandboxID = &opts.SandboxID
-		}
-		if opts.Name != "" {
-			params.Name = &opts.Name
-		}
-
+func (s *Service) ListSnapshots(ctx context.Context, params *api.SnapshotListParams) *transport.Paginator[api.SnapshotInfo] {
+	return transport.NewPaginator(func(ctx context.Context, token string) ([]api.SnapshotInfo, string, error) {
 		resp, err := s.t.API().GetSnapshotsWithResponse(ctx, params)
 		if err != nil {
 			return nil, "", err
@@ -36,11 +21,6 @@ func (s *Service) ListSnapshots(ctx context.Context, opts ListSnapshotsOptions) 
 		if err != nil {
 			return nil, "", err
 		}
-
-		snapshots := make([]SnapshotInfo, 0, len(*page))
-		for _, snapshot := range *page {
-			snapshots = append(snapshots, snapshotFrom(snapshot))
-		}
-		return snapshots, transport.NextTokenFrom(resp.HTTPResponse.Header), nil
+		return *page, transport.NextTokenFrom(resp.HTTPResponse.Header), nil
 	})
 }

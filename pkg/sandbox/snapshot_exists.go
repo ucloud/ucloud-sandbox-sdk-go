@@ -1,6 +1,10 @@
 package sandbox
 
-import "context"
+import (
+	"context"
+
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
+)
 
 // SnapshotExists reports whether a snapshot is still on the platform.
 //
@@ -10,18 +14,12 @@ import "context"
 // snapshot count. Walking every page and comparing IDs, as earlier versions of
 // this SDK did, cost a request per page.
 func (s *Service) SnapshotExists(ctx context.Context, snapshot string) (bool, error) {
-	page, err := s.ListSnapshots(ctx, ListSnapshotsOptions{
-		Name:  snapshot,
-		Limit: 1,
+	page, err := s.ListSnapshots(ctx, &api.SnapshotListParams{
+		Name:  &snapshot,
+		Limit: new(api.PaginationLimit(1)),
 	}).NextItems(ctx)
 	if err != nil {
 		return false, err
 	}
 	return len(page) > 0, nil
-}
-
-// ListSnapshots returns the snapshots taken of this sandbox.
-func (s *Sandbox) ListSnapshots(ctx context.Context, opts ListSnapshotsOptions) ([]SnapshotInfo, error) {
-	opts.SandboxID = s.ID
-	return s.svc.ListSnapshots(ctx, opts).All(ctx)
 }

@@ -8,9 +8,10 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/client"
-	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox"
-	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/template"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox/commands"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/template/build"
 )
 
 func main() {
@@ -20,32 +21,36 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	tpls := c.Templates()
 
-	// NewBuilder takes the region from the client, so the default base image
-	// is the one reachable from there.
-	spec := tpls.NewBuilder(template.BuilderOptions{}).
-		FromImage("ubuntu:22.04").
+	builder := build.FromBaseImage().
 		RunCmd("apt-get update && apt-get install -y python3").
-		SetWorkdir("/app")
+		SetWorkdir("/app").
+		SetLogger(build.DefaultLogger())
 
-	build, err := tpls.Build(ctx, spec, "example-python", template.BuildOptions{
-		CPUCount: 2,
-		MemoryMB: 2048,
-		OnLogs:   template.DefaultLogger(),
+	build, err := builder.Build(ctx, c, api.TemplateBuildRequestV3{
+		Name:     new("exmaple-python"),
+		CpuCount: new(int32(2)),
+		MemoryMB: new(int32(2048)),
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("built template:", build.TemplateID)
 
-	sbx, err := c.Sandboxes().Create(ctx, sandbox.CreateOptions{Template: build.TemplateID})
+	sbx, err := c.Sandboxes().Create(ctx, api.NewSandbox{
+		TemplateID: build.TemplateID,
+	}, "")
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer sbx.Kill(ctx)
+	defer c.Sandboxes().Kill(ctx, sbx.SandboxID)
 
-	out, err := sbx.Commands.Run(ctx, "python3 --version", sandbox.CommandOptions{})
+	envd, err := c.Sandboxes().Envd(sbx, "")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	out, err := envd.Commands().Run(ctx, "python3 --version", commands.Options{})
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -24,8 +24,3 @@ func (s *Service) Delete(ctx context.Context, volumeID string) (bool, error) {
 	}
 	return true, nil
 }
-
-// Destroy deletes the volume this handle refers to.
-func (v *Volume) Destroy(ctx context.Context) (bool, error) {
-	return v.svc.Delete(ctx, v.ID)
-}

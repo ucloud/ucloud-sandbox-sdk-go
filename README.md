@@ -9,7 +9,7 @@ code you did not write.
 go get github.com/ucloud/ucloud-sandbox-sdk-go
 ```
 
-Requires Go 1.26 or newer.
+Requires Go 1.27 or newer.
 
 ## Quick start
 
@@ -21,8 +21,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/client"
-	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox/commands"
 )
 
 func main() {
@@ -33,13 +34,18 @@ func main() {
 		log.Fatal(err)
 	}
 
-	sbx, err := c.Sandboxes().Create(ctx, sandbox.CreateOptions{Template: "base"})
+	sbx, err := c.Sandboxes().Create(ctx, api.NewSandbox{TemplateID: "system/base"})
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer sbx.Kill(ctx)
+	defer c.Sandboxes().Kill(ctx, sbx.SandboxID)
 
-	out, err := sbx.Commands.Run(ctx, "uname -a", sandbox.CommandOptions{})
+	envd, err := c.Sandboxes().Envd(sbx, "")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	out, err := envd.Commands().Run(ctx, "uname -a", commands.Options{})
 	if err != nil {
 		log.Fatal(err)
 	}

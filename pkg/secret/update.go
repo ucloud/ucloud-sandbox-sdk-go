@@ -14,19 +14,10 @@ import (
 // write-only.
 //
 // POST /secrets/{secretID}
-func (s *Service) Update(ctx context.Context, secret, value string, opts UpdateOptions) (*Info, error) {
-	body := api.PostSecretsSecretIDJSONRequestBody{
-		Value:    value,
-		Metadata: metadataFor(opts.Metadata),
-	}
-
-	resp, err := s.t.API().PostSecretsSecretIDWithResponse(ctx, secret, body)
+func (s *Service) Update(ctx context.Context, secret string, req api.SecretUpdate) (*api.Secret, error) {
+	resp, err := s.t.API().PostSecretsSecretIDWithResponse(ctx, secret, req)
 	if err != nil {
 		return nil, err
 	}
-	updated, err := transport.Parsed(resp.JSON200, resp.HTTPResponse, resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return infoFrom(*updated), nil
+	return transport.Parsed(resp.JSON200, resp.HTTPResponse, resp.Body)
 }

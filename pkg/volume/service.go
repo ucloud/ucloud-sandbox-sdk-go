@@ -1,7 +1,6 @@
 package volume
 
 import (
-	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
 )
 
@@ -16,9 +15,4 @@ type Service struct {
 // NewService returns a Service backed by t.
 func NewService(t *transport.Client) *Service {
 	return &Service{t: t}
-}
-
-// newVolume wraps a control-plane response into a handle.
-func (s *Service) newVolume(v api.VolumeAndToken) *Volume {
-	return &Volume{ID: v.VolumeID, Name: v.Name, svc: s}
 }

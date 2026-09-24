@@ -15,25 +15,12 @@ import (
 // result rather than present with a zero value.
 //
 // GET /sandboxes/metrics
-func (s *Service) BatchMetrics(ctx context.Context, sandboxIDs []string) (map[string]Metrics, error) {
-	if len(sandboxIDs) == 0 {
-		return map[string]Metrics{}, nil
-	}
-
+func (s *Service) BatchMetrics(ctx context.Context, sandboxIDs []string) (*api.SandboxesWithMetrics, error) {
 	params := &api.GetSandboxesMetricsParams{SandboxIds: sandboxIDs}
 
 	resp, err := s.t.API().GetSandboxesMetricsWithResponse(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-	batch, err := transport.Parsed(resp.JSON200, resp.HTTPResponse, resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	metrics := make(map[string]Metrics, len(batch.Sandboxes))
-	for sandboxID, m := range batch.Sandboxes {
-		metrics[sandboxID] = metricsFrom(m)
-	}
-	return metrics, nil
+	return transport.Parsed(resp.JSON200, resp.HTTPResponse, resp.Body)
 }

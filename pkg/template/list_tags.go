@@ -3,6 +3,7 @@ package template
 import (
 	"context"
 
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
 )
 
@@ -10,7 +11,7 @@ import (
 // never nil.
 //
 // GET /templates/{templateID}/tags
-func (s *Service) ListTags(ctx context.Context, templateID string) ([]Tag, error) {
+func (s *Service) ListTags(ctx context.Context, templateID string) ([]api.TemplateTag, error) {
 	resp, err := s.t.API().GetTemplatesTemplateIDTagsWithResponse(ctx, templateID)
 	if err != nil {
 		return nil, err
@@ -19,10 +20,5 @@ func (s *Service) ListTags(ctx context.Context, templateID string) ([]Tag, error
 	if err != nil {
 		return nil, err
 	}
-
-	tags := make([]Tag, 0, len(*page))
-	for _, t := range *page {
-		tags = append(tags, tagFrom(t))
-	}
-	return tags, nil
+	return *page, nil
 }

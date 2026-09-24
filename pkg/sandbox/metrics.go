@@ -11,15 +11,7 @@ import (
 // nil.
 //
 // GET /sandboxes/{sandboxID}/metrics
-func (s *Service) Metrics(ctx context.Context, sandboxID string, opts MetricsOptions) ([]Metrics, error) {
-	params := &api.GetSandboxesSandboxIDMetricsParams{}
-	if opts.StartUnix > 0 {
-		params.Start = &opts.StartUnix
-	}
-	if opts.EndUnix > 0 {
-		params.End = &opts.EndUnix
-	}
-
+func (s *Service) Metrics(ctx context.Context, sandboxID string, params *api.SandboxMetricsParams) ([]api.SandboxMetric, error) {
 	resp, err := s.t.API().GetSandboxesSandboxIDMetricsWithResponse(ctx, sandboxID, params)
 	if err != nil {
 		return nil, err
@@ -28,10 +20,5 @@ func (s *Service) Metrics(ctx context.Context, sandboxID string, opts MetricsOpt
 	if err != nil {
 		return nil, err
 	}
-
-	samples := make([]Metrics, 0, len(*page))
-	for _, m := range *page {
-		samples = append(samples, metricsFrom(m))
-	}
-	return samples, nil
+	return *page, nil
 }

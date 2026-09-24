@@ -2,6 +2,10 @@ package sandbox
 
 import (
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/envd"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox/commands"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox/files"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox/pty"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
 )
 
@@ -11,6 +15,8 @@ import (
 // It is safe for concurrent use.
 type Service struct {
 	t *transport.Client
+
+	user string
 }
 
 // NewService returns a Service backed by t.
@@ -18,44 +24,30 @@ func NewService(t *transport.Client) *Service {
 	return &Service{t: t}
 }
 
-// newSandbox wraps a control-plane response into a usable handle, building the
-// envd clients it needs.
-func (s *Service) newSandbox(sandboxID string, sbx api.Sandbox) (*Sandbox, error) {
-	domain := s.t.SandboxDomain(valueOr(sbx.Domain, ""))
+type EnvdService struct {
+	sbx  *api.Sandbox
+	conn *envd.Connection
+}
 
-	handle := &Sandbox{
-		ID:          sandboxID,
-		Domain:      domain,
-		EnvdVersion: sbx.EnvdVersion,
-
-		svc:         s,
-		envdVersion: parseEnvdVersion(sbx.EnvdVersion),
-	}
-
-	conn, err := newEnvdConn(
-		s.t.HTTPClient(),
-		s.t.SandboxURL(sandboxID, domain),
-		sandboxID,
-		valueOr(sbx.EnvdAccessToken, ""),
-		valueOr(sbx.TrafficAccessToken, ""),
-		s.t.APIKey(),
-	)
+func (s *Service) Envd(sbx *api.Sandbox, user string) (*EnvdService, error) {
+	conn, err := envd.Connect(s.t, sbx, user)
 	if err != nil {
 		return nil, err
 	}
-	handle.conn = conn
-
-	handle.Commands = &Commands{sbx: handle}
-	handle.Files = &Filesystem{sbx: handle}
-	handle.Pty = &Pty{sbx: handle}
-
-	return handle, nil
+	return &EnvdService{
+		sbx:  sbx,
+		conn: conn,
+	}, nil
 }
 
-// valueOr dereferences an optional field, falling back to a default.
-func valueOr[T any](ptr *T, fallback T) T {
-	if ptr == nil {
-		return fallback
-	}
-	return *ptr
+func (s *EnvdService) Files() *files.Filesystem {
+	return files.New(s.sbx, s.conn)
+}
+
+func (s *EnvdService) Commands() *commands.Commands {
+	return commands.New(s.sbx, s.conn)
+}
+
+func (s *EnvdService) Pty() *pty.Pty {
+	return pty.New(s.sbx, s.conn)
 }

@@ -1,34 +1,5 @@
 package sandbox
 
-// Ports exposed inside every sandbox.
-const (
-	// EnvdPort is where envd, the in-sandbox agent, listens.
-	EnvdPort = 49983
-
-	// MCPPort is where the MCP gateway listens.
-	MCPPort = 50005
-)
-
-// Defaults applied when CreateOptions or CommandOptions leave a field unset.
-const (
-	// DefaultTemplate is the template a sandbox starts from.
-	DefaultTemplate = "base"
-
-	// DefaultTimeoutSeconds is how long a sandbox lives without being
-	// refreshed.
-	DefaultTimeoutSeconds = 300
-
-	// DefaultCommandTimeoutSeconds bounds a single command.
-	DefaultCommandTimeoutSeconds = 60
-)
-
-// keepalivePingIntervalSec tells envd how often to send a keep-alive on a
-// stream, so an idle stream is not mistaken for a dead one.
-const keepalivePingIntervalSec = 50
-
-// SDKVersion is this SDK's version, reported to the platform.
-const SDKVersion = "0.3.0"
-
 // Metadata the SDK attaches to every sandbox it creates, recording which
 // product opened it. Set it with CreateOptions.ManageBy.
 const (

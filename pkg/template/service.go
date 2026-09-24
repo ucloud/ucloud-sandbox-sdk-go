@@ -14,12 +14,3 @@ type Service struct {
 func NewService(t *transport.Client) *Service {
 	return &Service{t: t}
 }
-
-// NewBuilder returns a Builder that defaults to the base image for the client's
-// region. Prefer it over New, which has to guess the region.
-func (s *Service) NewBuilder(opts BuilderOptions) *Builder {
-	if opts.Region == "" {
-		opts.Region = s.t.Region()
-	}
-	return New(opts)
-}

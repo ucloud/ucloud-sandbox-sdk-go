@@ -17,12 +17,3 @@ func (s *Service) Get(ctx context.Context, volumeID string) (*api.VolumeAndToken
 	}
 	return transport.Parsed(resp.JSON200, resp.HTTPResponse, resp.Body)
 }
-
-// Connect returns a handle to an existing volume, ready for content operations.
-func (s *Service) Connect(ctx context.Context, volumeID string) (*Volume, error) {
-	found, err := s.Get(ctx, volumeID)
-	if err != nil {
-		return nil, err
-	}
-	return s.newVolume(*found), nil
-}

@@ -12,7 +12,7 @@ import (
 // Errors other than "not found" are returned, so a network failure is not
 // mistaken for a missing secret.
 func (s *Service) Exists(ctx context.Context, secret string) (bool, error) {
-	if _, err := s.GetInfo(ctx, secret); err != nil {
+	if _, err := s.Get(ctx, secret); err != nil {
 		if errdefs.IsNotFound(err) {
 			return false, nil
 		}

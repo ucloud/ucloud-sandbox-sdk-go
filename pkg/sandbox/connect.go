@@ -11,13 +11,8 @@ import (
 // TimeoutSeconds. A paused sandbox is resumed.
 //
 // POST /sandboxes/{sandboxID}/connect
-func (s *Service) Connect(ctx context.Context, sandboxID string, opts ConnectOptions) (*Sandbox, error) {
-	body := api.PostSandboxesSandboxIDConnectJSONRequestBody{
-		Timeout: int32(orDefaultInt(opts.TimeoutSeconds, DefaultTimeoutSeconds)),
-		Memory:  opts.Memory,
-	}
-
-	resp, err := s.t.API().PostSandboxesSandboxIDConnectWithResponse(ctx, sandboxID, body)
+func (s *Service) Connect(ctx context.Context, sandboxID string, req api.ConnectSandbox) (*api.Sandbox, error) {
+	resp, err := s.t.API().PostSandboxesSandboxIDConnectWithResponse(ctx, sandboxID, req)
 	if err != nil {
 		return nil, err
 	}
@@ -34,5 +29,5 @@ func (s *Service) Connect(ctx context.Context, sandboxID string, opts ConnectOpt
 	if connected == nil {
 		return nil, transport.Check(resp.HTTPResponse, resp.Body)
 	}
-	return s.newSandbox(sandboxID, *connected)
+	return connected, nil
 }

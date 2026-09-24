@@ -11,8 +11,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/client"
-	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox/commands"
 )
 
 func main() {
@@ -23,39 +24,44 @@ func main() {
 		log.Fatal(err)
 	}
 
-	sbx, err := c.Sandboxes().Create(ctx, sandbox.CreateOptions{
-		Template:       "base",
-		TimeoutSeconds: 300,
-		Metadata:       map[string]string{"example": "basic"},
-	})
+	sbx, err := c.Sandboxes().Create(ctx, api.NewSandbox{
+		TemplateID: "system/base",
+		Timeout:    new(int32(300)),
+		Metadata:   new(api.SandboxMetadata{"example": "basic"}),
+	}, "")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer func() {
-		if _, err := sbx.Kill(ctx); err != nil {
+		if _, err := c.Sandboxes().Kill(ctx, sbx.SandboxID); err != nil {
 			log.Printf("kill sandbox: %v", err)
 		}
 	}()
 
-	fmt.Println("sandbox:", sbx.ID)
+	fmt.Println("sandbox:", sbx.SandboxID)
 
-	out, err := sbx.Commands.Run(ctx, "uname -a", sandbox.CommandOptions{})
+	envd, err := c.Sandboxes().Envd(sbx, "")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	out, err := envd.Commands().Run(ctx, "uname -a", commands.Options{})
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Print(out.Stdout)
 
-	if _, err := sbx.Files.Write(ctx, "/home/user/hello.txt", "hello\n", sandbox.FileOptions{}); err != nil {
+	if _, err := envd.Files().Write(ctx, "/home/user/hello.txt", "hello\n"); err != nil {
 		log.Fatal(err)
 	}
 
-	content, err := sbx.Files.Read(ctx, "/home/user/hello.txt", sandbox.FileOptions{})
+	content, err := envd.Files().Read(ctx, "/home/user/hello.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Print("read back: ", content)
 
-	entries, err := sbx.Files.List(ctx, "/home/user", sandbox.FileOptions{})
+	entries, err := envd.Files().List(ctx, "/home/user", 0)
 	if err != nil {
 		log.Fatal(err)
 	}

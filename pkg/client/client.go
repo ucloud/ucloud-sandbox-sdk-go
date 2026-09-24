@@ -13,8 +13,6 @@
 package client
 
 import (
-	"context"
-
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/secret"
@@ -84,8 +82,3 @@ func (c *Client) Region() string { return c.t.Region() }
 
 // Domain returns the resolved sandbox domain.
 func (c *Client) Domain() string { return c.t.Domain() }
-
-// Health checks that the control plane is reachable.
-func (c *Client) Health(ctx context.Context) error {
-	return c.sandboxes.Health(ctx)
-}

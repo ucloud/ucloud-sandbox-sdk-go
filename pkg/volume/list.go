@@ -3,6 +3,7 @@ package volume
 import (
 	"context"
 
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
 )
 
@@ -12,7 +13,7 @@ import (
 // paginator. The result is never nil.
 //
 // GET /volumes
-func (s *Service) List(ctx context.Context) ([]Info, error) {
+func (s *Service) List(ctx context.Context) ([]api.Volume, error) {
 	resp, err := s.t.API().GetVolumesWithResponse(ctx)
 	if err != nil {
 		return nil, err
@@ -21,10 +22,5 @@ func (s *Service) List(ctx context.Context) ([]Info, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	volumes := make([]Info, 0, len(*page))
-	for _, v := range *page {
-		volumes = append(volumes, infoFrom(v))
-	}
-	return volumes, nil
+	return *page, nil
 }

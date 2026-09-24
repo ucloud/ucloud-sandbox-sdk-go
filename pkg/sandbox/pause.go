@@ -14,10 +14,8 @@ import (
 // which is reported as success because the caller's intent is satisfied.
 //
 // POST /sandboxes/{sandboxID}/pause
-func (s *Service) Pause(ctx context.Context, sandboxID string, opts PauseOptions) error {
-	body := api.PostSandboxesSandboxIDPauseJSONRequestBody{Memory: opts.Memory}
-
-	resp, err := s.t.API().PostSandboxesSandboxIDPauseWithResponse(ctx, sandboxID, body)
+func (s *Service) Pause(ctx context.Context, sandboxID string, req api.SandboxPauseRequest) error {
+	resp, err := s.t.API().PostSandboxesSandboxIDPauseWithResponse(ctx, sandboxID, req)
 	if err != nil {
 		return err
 	}

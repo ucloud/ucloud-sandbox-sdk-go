@@ -13,16 +13,10 @@ import (
 // example "my-template" or "my-template:v1".
 //
 // POST /templates/tags
-func (s *Service) AssignTags(ctx context.Context, target string, tags []string) (*AssignedTags, error) {
-	body := api.PostTemplatesTagsJSONRequestBody{Target: target, Tags: tags}
-
-	resp, err := s.t.API().PostTemplatesTagsWithResponse(ctx, body)
+func (s *Service) AssignTags(ctx context.Context, req api.AssignTemplateTagsRequest) (*api.AssignedTemplateTags, error) {
+	resp, err := s.t.API().PostTemplatesTagsWithResponse(ctx, req)
 	if err != nil {
 		return nil, err
 	}
-	assigned, err := transport.Parsed(resp.JSON201, resp.HTTPResponse, resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	return &AssignedTags{BuildID: assigned.BuildID.String(), Tags: assigned.Tags}, nil
+	return transport.Parsed(resp.JSON201, resp.HTTPResponse, resp.Body)
 }
