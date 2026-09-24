@@ -86,6 +86,13 @@ func (b *Builder) SetImageRegistryAuth(username, password string) *Builder {
 	return b
 }
 
+func (b *Builder) GetImage() string {
+	if b.req.FromImage != nil {
+		return *b.req.FromImage
+	}
+	return ""
+}
+
 func (b *Builder) Force(f bool) *Builder {
 	b.req.Force = &f
 	return b
