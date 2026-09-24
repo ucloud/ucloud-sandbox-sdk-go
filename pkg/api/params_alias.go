@@ -2,7 +2,7 @@ package api
 
 type SnapshotListParams = GetSnapshotsParams
 
-type SandboxeListParamsV2 = GetV2SandboxesParams
+type SandboxListParamsV2 = GetV2SandboxesParams
 
 type SandboxLogsParamsV2 = GetV2SandboxesSandboxIDLogsParams
 

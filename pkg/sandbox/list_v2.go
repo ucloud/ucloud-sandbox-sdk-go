@@ -10,7 +10,7 @@ import (
 // ListV2 returns a paginator over the team's sandboxes. No request is made
 // until the paginator is walked.
 // GET /v2/sandboxes
-func (s *Service) ListV2(ctx context.Context, params *api.SandboxeListParamsV2) *transport.Paginator[api.ListedSandbox] {
+func (s *Service) ListV2(ctx context.Context, params *api.SandboxListParamsV2) *transport.Paginator[api.ListedSandbox] {
 	return transport.NewPaginator(func(ctx context.Context, token string) ([]api.ListedSandbox, string, error) {
 		resp, err := s.t.API().GetV2SandboxesWithResponse(ctx, params)
 		if err != nil {
