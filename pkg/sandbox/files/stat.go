@@ -11,7 +11,7 @@ import (
 func (f *Filesystem) GetInfo(ctx context.Context, path string) (*filesystem.EntryInfo, error) {
 	req := &filesystem.StatRequest{Path: path}
 
-	resp, err := f.conn.Filesystem.Stat(ctx, f.conn.SandboxRequest(req, f.sbx))
+	resp, err := f.conn.Filesystem.Stat(ctx, f.conn.SandboxRequest(req, f.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}

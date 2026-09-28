@@ -79,8 +79,8 @@ func (f *Filesystem) WriteFiles(ctx context.Context, files []WriteEntry) ([]envd
 	}
 
 	params := &envdapi.PostFilesParams{}
-	if user := f.conn.GetUser(); user != "" {
-		params.Username = &user
+	if f.user != "" {
+		params.Username = &f.user
 	}
 	// With one file the path parameter names it outright; with several, each
 	// part's filename does, and a single path here would be ambiguous.
@@ -113,8 +113,8 @@ func (f *Filesystem) Compose(ctx context.Context, destination string, sources []
 		Destination: destination,
 		SourcePaths: sources,
 	}
-	if user := f.conn.GetUser(); user != "" {
-		body.Username = &user
+	if f.user != "" {
+		body.Username = &f.user
 	}
 
 	resp, err := f.conn.Files.PostFilesComposeWithResponse(ctx, body)

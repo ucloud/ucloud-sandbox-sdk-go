@@ -62,7 +62,7 @@ func newSlowConn(t *testing.T) *Connection {
 	httpClient := server.Client()
 	httpClient.Timeout = clientTimeout
 
-	conn, err := newConn(httpClient, server.URL, "sbx", "", "", "key", "", Version{})
+	conn, err := newConn(httpClient, server.URL, "sbx", "", "", "key", Version{})
 	require.NoError(t, err)
 	return conn
 }

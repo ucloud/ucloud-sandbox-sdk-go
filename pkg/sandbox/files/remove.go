@@ -11,7 +11,7 @@ import (
 func (f *Filesystem) Remove(ctx context.Context, path string) error {
 	req := &filesystem.RemoveRequest{Path: path}
 
-	if _, err := f.conn.Filesystem.Remove(ctx, f.conn.SandboxRequest(req, f.sbx)); err != nil {
+	if _, err := f.conn.Filesystem.Remove(ctx, f.conn.SandboxRequest(req, f.user)); err != nil {
 		return errdefs.FromConnect(err)
 	}
 	return nil

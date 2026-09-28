@@ -25,7 +25,7 @@ func (c *Commands) Start(ctx context.Context, cmd string, opts Options) (*Handle
 		req.Stdin = &stdin
 	}
 
-	stream, err := c.conn.Process.Start(ctx, c.conn.SandboxRequest(req, c.sbx))
+	stream, err := c.conn.Process.Start(ctx, c.conn.SandboxRequest(req, c.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}

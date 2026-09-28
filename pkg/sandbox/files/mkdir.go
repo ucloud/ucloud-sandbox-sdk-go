@@ -12,7 +12,7 @@ import (
 func (f *Filesystem) MakeDir(ctx context.Context, path string) (bool, error) {
 	req := &filesystem.MakeDirRequest{Path: path}
 
-	if _, err := f.conn.Filesystem.MakeDir(ctx, f.conn.SandboxRequest(req, f.sbx)); err != nil {
+	if _, err := f.conn.Filesystem.MakeDir(ctx, f.conn.SandboxRequest(req, f.user)); err != nil {
 		mapped := errdefs.FromConnect(err)
 		if errdefs.IsConflict(mapped) {
 			return false, nil

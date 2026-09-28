@@ -11,7 +11,7 @@ import (
 func (f *Filesystem) Rename(ctx context.Context, oldPath, newPath string) (*filesystem.EntryInfo, error) {
 	req := &filesystem.MoveRequest{Source: oldPath, Destination: newPath}
 
-	resp, err := f.conn.Filesystem.Move(ctx, f.conn.SandboxRequest(req, f.sbx))
+	resp, err := f.conn.Filesystem.Move(ctx, f.conn.SandboxRequest(req, f.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}

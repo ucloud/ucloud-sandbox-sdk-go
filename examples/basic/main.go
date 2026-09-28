@@ -33,35 +33,30 @@ func main() {
 		log.Fatal(err)
 	}
 	defer func() {
-		if _, err := c.Sandboxes().Kill(ctx, sbx.SandboxID); err != nil {
+		if _, err := sbx.Kill(ctx); err != nil {
 			log.Printf("kill sandbox: %v", err)
 		}
 	}()
 
 	fmt.Println("sandbox:", sbx.SandboxID)
 
-	envd, err := c.Sandboxes().Envd(sbx, "")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	out, err := envd.Commands().Run(ctx, "uname -a", commands.Options{})
+	out, err := sbx.Commands().Run(ctx, "uname -a", commands.Options{})
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Print(out.Stdout)
 
-	if _, err := envd.Files().Write(ctx, "/home/user/hello.txt", "hello\n"); err != nil {
+	if _, err := sbx.Files().Write(ctx, "/home/user/hello.txt", "hello\n"); err != nil {
 		log.Fatal(err)
 	}
 
-	content, err := envd.Files().Read(ctx, "/home/user/hello.txt")
+	content, err := sbx.Files().Read(ctx, "/home/user/hello.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Print("read back: ", content)
 
-	entries, err := envd.Files().List(ctx, "/home/user", 0)
+	entries, err := sbx.Files().List(ctx, "/home/user", 0)
 	if err != nil {
 		log.Fatal(err)
 	}

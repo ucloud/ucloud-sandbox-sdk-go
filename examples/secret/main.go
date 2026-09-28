@@ -71,12 +71,7 @@ func main() {
 	}
 	defer c.Sandboxes().Kill(ctx, sbx.SandboxID)
 
-	envd, err := c.Sandboxes().Envd(sbx, "")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	out, err := envd.Commands().Run(ctx, "printenv EXAMPLE_KEY", commands.Options{})
+	out, err := sbx.Commands().Run(ctx, "printenv EXAMPLE_KEY", commands.Options{})
 	if err != nil {
 		log.Fatal(err)
 	}

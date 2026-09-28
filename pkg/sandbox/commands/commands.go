@@ -15,6 +15,8 @@ type Commands struct {
 	sbx *api.Sandbox
 
 	conn *envd.Connection
+
+	user string
 }
 
 // Options are the optional arguments to the Commands methods.
@@ -94,6 +96,11 @@ func New(sbx *api.Sandbox, conn *envd.Connection) *Commands {
 		sbx:  sbx,
 		conn: conn,
 	}
+}
+
+func (c *Commands) User(user string) *Commands {
+	c.user = user
+	return c
 }
 
 // shellCommand wraps a command line so envd runs it through a shell, which is

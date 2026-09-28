@@ -17,7 +17,7 @@ func (c *Commands) SendStdin(ctx context.Context, pid int, data string) error {
 		},
 	}
 
-	if _, err := c.conn.Process.SendInput(ctx, c.conn.SandboxRequest(req, c.sbx)); err != nil {
+	if _, err := c.conn.Process.SendInput(ctx, c.conn.SandboxRequest(req, c.user)); err != nil {
 		return errdefs.FromConnect(err)
 	}
 	return nil

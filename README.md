@@ -38,14 +38,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer c.Sandboxes().Kill(ctx, sbx.SandboxID)
+	defer sbx.Kill(ctx)
 
-	envd, err := c.Sandboxes().Envd(sbx, "")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	out, err := envd.Commands().Run(ctx, "uname -a", commands.Options{})
+	out, err := sbx.Commands().Run(ctx, "uname -a", commands.Options{})
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -11,7 +11,7 @@ import (
 // TimeoutSeconds. A paused sandbox is resumed.
 //
 // POST /sandboxes/{sandboxID}/connect
-func (s *Service) Connect(ctx context.Context, sandboxID string, req api.ConnectSandbox) (*api.Sandbox, error) {
+func (s *Service) Connect(ctx context.Context, sandboxID string, req api.ConnectSandbox) (*Sandbox, error) {
 	resp, err := s.t.API().PostSandboxesSandboxIDConnectWithResponse(ctx, sandboxID, req)
 	if err != nil {
 		return nil, err
@@ -29,5 +29,5 @@ func (s *Service) Connect(ctx context.Context, sandboxID string, req api.Connect
 	if connected == nil {
 		return nil, transport.Check(resp.HTTPResponse, resp.Body)
 	}
-	return connected, nil
+	return wrap(s.t, connected)
 }

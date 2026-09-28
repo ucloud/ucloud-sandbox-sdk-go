@@ -3,7 +3,6 @@ package pty
 import (
 	"context"
 
-	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/envd"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/envd/process"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/errdefs"
@@ -16,7 +15,7 @@ import (
 // stream rather than separate stdout and stderr, and it carries terminal
 // control sequences. It is what an interactive shell needs.
 type Pty struct {
-	sbx *api.Sandbox
+	user string
 
 	conn *envd.Connection
 }
@@ -39,11 +38,15 @@ type Size struct {
 	Cols int
 }
 
-func New(sbx *api.Sandbox, conn *envd.Connection) *Pty {
+func New(conn *envd.Connection) *Pty {
 	return &Pty{
-		sbx:  sbx,
 		conn: conn,
 	}
+}
+
+func (p *Pty) User(user string) *Pty {
+	p.user = user
+	return p
 }
 
 // Output delivers the terminal's bytes as they arrive. It is closed when the
@@ -153,7 +156,7 @@ func (p *Pty) Kill(ctx context.Context, pid int) (bool, error) {
 		Signal:  process.Signal_SIGNAL_SIGKILL,
 	}
 
-	if _, err := p.conn.Process.SendSignal(ctx, p.conn.SandboxRequest(req, p.sbx)); err != nil {
+	if _, err := p.conn.Process.SendSignal(ctx, p.conn.SandboxRequest(req, p.user)); err != nil {
 		mapped := errdefs.FromConnect(err)
 		if errdefs.IsNotFound(mapped) {
 			return false, nil
@@ -172,7 +175,7 @@ func (p *Pty) SendStdin(ctx context.Context, pid int, data []byte) error {
 		},
 	}
 
-	if _, err := p.conn.Process.SendInput(ctx, p.conn.SandboxRequest(req, p.sbx)); err != nil {
+	if _, err := p.conn.Process.SendInput(ctx, p.conn.SandboxRequest(req, p.user)); err != nil {
 		return errdefs.FromConnect(err)
 	}
 	return nil
@@ -185,7 +188,7 @@ func (p *Pty) Resize(ctx context.Context, pid int, size Size) error {
 		Pty:     ptySize(size),
 	}
 
-	if _, err := p.conn.Process.Update(ctx, p.conn.SandboxRequest(req, p.sbx)); err != nil {
+	if _, err := p.conn.Process.Update(ctx, p.conn.SandboxRequest(req, p.user)); err != nil {
 		return errdefs.FromConnect(err)
 	}
 	return nil

@@ -15,7 +15,7 @@ func (c *Commands) Kill(ctx context.Context, pid int) (bool, error) {
 		Signal:  process.Signal_SIGNAL_SIGKILL,
 	}
 
-	if _, err := c.conn.Process.SendSignal(ctx, c.conn.SandboxRequest(req, c.sbx)); err != nil {
+	if _, err := c.conn.Process.SendSignal(ctx, c.conn.SandboxRequest(req, c.user)); err != nil {
 		mapped := errdefs.FromConnect(err)
 		if errdefs.IsNotFound(mapped) {
 			return false, nil

@@ -17,7 +17,7 @@ import (
 func (p *Pty) Connect(ctx context.Context, pid int, opts commands.Options) (*Handle, error) {
 	req := &process.ConnectRequest{Process: commands.SelectorForPID(pid)}
 
-	stream, err := p.conn.Process.Connect(ctx, p.conn.SandboxRequest(req, p.sbx))
+	stream, err := p.conn.Process.Connect(ctx, p.conn.SandboxRequest(req, p.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}

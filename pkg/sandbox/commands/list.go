@@ -10,7 +10,7 @@ import (
 // List returns the processes envd is tracking inside the sandbox. The result is
 // never nil.
 func (c *Commands) List(ctx context.Context) ([]ProcessInfo, error) {
-	resp, err := c.conn.Process.List(ctx, c.conn.SandboxRequest(&process.ListRequest{}, c.sbx))
+	resp, err := c.conn.Process.List(ctx, c.conn.SandboxRequest(&process.ListRequest{}, c.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}

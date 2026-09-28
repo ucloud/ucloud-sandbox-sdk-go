@@ -14,7 +14,7 @@ import (
 func (c *Commands) CloseStdin(ctx context.Context, pid int) error {
 	req := &process.CloseStdinRequest{Process: SelectorForPID(pid)}
 
-	if _, err := c.conn.Process.CloseStdin(ctx, c.conn.SandboxRequest(req, c.sbx)); err != nil {
+	if _, err := c.conn.Process.CloseStdin(ctx, c.conn.SandboxRequest(req, c.user)); err != nil {
 		return errdefs.FromConnect(err)
 	}
 	return nil

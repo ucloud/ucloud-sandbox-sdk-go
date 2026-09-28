@@ -43,13 +43,8 @@ func main() {
 	}
 	defer c.Sandboxes().Kill(ctx, sbx.SandboxID)
 
-	envd, err := c.Sandboxes().Envd(sbx, "")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	// The volume is written from inside the sandbox, where it is mounted.
-	out, err := envd.Commands().Run(ctx,
+	out, err := sbx.Commands().Run(ctx,
 		"echo persisted > /mnt/data/note.txt && cat /mnt/data/note.txt",
 		commands.Options{})
 	if err != nil {

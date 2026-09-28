@@ -32,8 +32,8 @@ func (f *Filesystem) ReadBytes(ctx context.Context, path string) ([]byte, error)
 // matters.
 func (f *Filesystem) ReadStream(ctx context.Context, path string) (io.ReadCloser, error) {
 	params := &envdapi.GetFilesParams{Path: &path}
-	if user := f.conn.GetUser(); user != "" {
-		params.Username = &user
+	if f.user != "" {
+		params.Username = &f.user
 	}
 
 	resp, err := f.conn.Files.GetFiles(ctx, params)

@@ -13,7 +13,7 @@ import (
 func (f *Filesystem) List(ctx context.Context, path string, depth uint32) ([]*filesystem.EntryInfo, error) {
 	req := &filesystem.ListDirRequest{Path: path, Depth: depth}
 
-	resp, err := f.conn.Filesystem.ListDir(ctx, f.conn.SandboxRequest(req, f.sbx))
+	resp, err := f.conn.Filesystem.ListDir(ctx, f.conn.SandboxRequest(req, f.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}

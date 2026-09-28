@@ -16,7 +16,7 @@ import (
 // refreshed, and Kill ends it sooner.
 //
 // POST /sandboxes
-func (s *Service) Create(ctx context.Context, req api.NewSandbox, managedBy string) (*api.Sandbox, error) {
+func (s *Service) Create(ctx context.Context, req api.NewSandbox, managedBy string) (*Sandbox, error) {
 	req.Metadata = withManageBy(req.Metadata, managedBy)
 
 	resp, err := s.t.API().PostSandboxesWithResponse(ctx, req)
@@ -38,7 +38,7 @@ func (s *Service) Create(ctx context.Context, req api.NewSandbox, managedBy stri
 			Message: "template is too old for this SDK; rebuild it with a current template build"}
 	}
 
-	return created, nil
+	return wrap(s.t, created)
 }
 
 // withManageBy adds the manage-by marker to a copy of the caller's metadata,

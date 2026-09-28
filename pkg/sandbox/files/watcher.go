@@ -39,7 +39,7 @@ func (f *Filesystem) CreateWatcher(ctx context.Context, path string, opts WatchO
 		AllowNetworkMounts: opts.AllowNetworkMounts,
 	}
 
-	resp, err := f.conn.Filesystem.CreateWatcher(ctx, f.conn.SandboxRequest(req, f.sbx))
+	resp, err := f.conn.Filesystem.CreateWatcher(ctx, f.conn.SandboxRequest(req, f.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}
@@ -51,7 +51,7 @@ func (f *Filesystem) CreateWatcher(ctx context.Context, path string, opts WatchO
 func (w *Watcher) Events(ctx context.Context) ([]*filesystem.FilesystemEvent, error) {
 	req := &filesystem.GetWatcherEventsRequest{WatcherId: w.ID}
 
-	resp, err := w.fs.conn.Filesystem.GetWatcherEvents(ctx, w.fs.conn.SandboxRequest(req, w.fs.sbx))
+	resp, err := w.fs.conn.Filesystem.GetWatcherEvents(ctx, w.fs.conn.SandboxRequest(req, w.fs.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}
@@ -62,7 +62,7 @@ func (w *Watcher) Events(ctx context.Context) ([]*filesystem.FilesystemEvent, er
 func (w *Watcher) Remove(ctx context.Context) error {
 	req := &filesystem.RemoveWatcherRequest{WatcherId: w.ID}
 
-	if _, err := w.fs.conn.Filesystem.RemoveWatcher(ctx, w.fs.conn.SandboxRequest(req, w.fs.sbx)); err != nil {
+	if _, err := w.fs.conn.Filesystem.RemoveWatcher(ctx, w.fs.conn.SandboxRequest(req, w.fs.user)); err != nil {
 		return errdefs.FromConnect(err)
 	}
 	return nil

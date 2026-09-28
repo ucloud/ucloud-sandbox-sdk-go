@@ -81,7 +81,7 @@ func (f *Filesystem) Watch(ctx context.Context, path string, onEvent func(*files
 		AllowNetworkMounts: opts.AllowNetworkMounts,
 	}
 
-	stream, err := f.conn.Filesystem.WatchDir(watchCtx, f.conn.SandboxRequest(req, f.sbx))
+	stream, err := f.conn.Filesystem.WatchDir(watchCtx, f.conn.SandboxRequest(req, f.user))
 	if err != nil {
 		cancel()
 		return nil, errdefs.FromConnect(err)

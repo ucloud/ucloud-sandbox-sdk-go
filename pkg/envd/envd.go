@@ -43,11 +43,9 @@ type Connection struct {
 
 	baseURL string
 	headers map[string]string
-
-	user string
 }
 
-func Connect(t *transport.Client, sbx *api.Sandbox, user string) (*Connection, error) {
+func Connect(t *transport.Client, sbx *api.Sandbox) (*Connection, error) {
 	var accessToken string
 	if sbx.EnvdAccessToken != nil {
 		accessToken = *sbx.EnvdAccessToken
@@ -64,7 +62,6 @@ func Connect(t *transport.Client, sbx *api.Sandbox, user string) (*Connection, e
 		accessToken,
 		trafficToken,
 		t.APIKey(),
-		user,
 		version,
 	)
 }
@@ -73,7 +70,7 @@ func Connect(t *transport.Client, sbx *api.Sandbox, user string) (*Connection, e
 //
 // The connect clients use the default protobuf codec. envd speaks the connect
 // protocol natively, so no per-call encoding choices are needed here.
-func newConn(httpClient *http.Client, baseURL, sandboxID, accessToken, trafficToken, apiKey, user string, version Version) (*Connection, error) {
+func newConn(httpClient *http.Client, baseURL, sandboxID, accessToken, trafficToken, apiKey string, version Version) (*Connection, error) {
 	headers := map[string]string{
 		headerSandboxID:     sandboxID,
 		headerSandboxPort:   strconv.Itoa(Port),
@@ -93,7 +90,6 @@ func newConn(httpClient *http.Client, baseURL, sandboxID, accessToken, trafficTo
 	conn := &Connection{
 		baseURL: baseURL,
 		headers: headers,
-		user:    user,
 		Version: version,
 	}
 
@@ -185,18 +181,13 @@ func (i headerInterceptor) WrapStreamingHandler(next connect.StreamingHandlerFun
 	return next
 }
 
-func (c *Connection) SandboxRequest[T any](msg *T, sbx *api.Sandbox) *connect.Request[T] {
-	return connectRequestWithUser(connect.NewRequest(msg), c.GetUser())
-}
-
-func (c *Connection) GetUser() string {
-	if c.user != "" {
-		return c.user
+func (c *Connection) SandboxRequest[T any](msg *T, user string) *connect.Request[T] {
+	if user == "" {
+		if !c.Version.Supports(VersionDefaultUser) {
+			user = "user"
+		}
 	}
-	if !c.Version.Supports(VersionDefaultUser) {
-		return "user"
-	}
-	return ""
+	return connectRequestWithUser(connect.NewRequest(msg), user)
 }
 
 // userHeader returns the basic-auth header envd reads the acting user from, or

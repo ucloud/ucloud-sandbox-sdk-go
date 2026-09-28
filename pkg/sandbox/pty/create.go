@@ -32,7 +32,7 @@ func (p *Pty) Create(ctx context.Context, size Size, opts commands.Options) (*Ha
 		Stdin:   &stdin,
 	}
 
-	stream, err := p.conn.Process.Start(ctx, p.conn.SandboxRequest(req, p.sbx))
+	stream, err := p.conn.Process.Start(ctx, p.conn.SandboxRequest(req, p.user))
 	if err != nil {
 		return nil, errdefs.FromConnect(err)
 	}
