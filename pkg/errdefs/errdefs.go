@@ -39,6 +39,7 @@ var (
 	ErrConflict        = &ConflictError{SandboxError: SandboxError{Message: "conflict"}}
 	ErrForbidden       = &ForbiddenError{SandboxError: SandboxError{Message: "forbidden"}}
 	ErrNotEnoughSpace  = &NotEnoughSpaceError{SandboxError: SandboxError{Message: "not enough space"}}
+	ErrPaymentRequired = &PaymentRequiredError{SandboxError: SandboxError{Message: "payment required"}}
 )
 
 type TimeoutError struct{ SandboxError }
@@ -81,6 +82,15 @@ func (e *ConflictError) Is(target error) bool { _, ok := target.(*ConflictError)
 type ForbiddenError struct{ SandboxError }
 
 func (e *ForbiddenError) Is(target error) bool { _, ok := target.(*ForbiddenError); return ok }
+
+// PaymentRequiredError reports a request the platform refused for billing
+// reasons, such as an overdue account or an exhausted balance.
+type PaymentRequiredError struct{ SandboxError }
+
+func (e *PaymentRequiredError) Is(target error) bool {
+	_, ok := target.(*PaymentRequiredError)
+	return ok
+}
 
 type FileUploadError struct{ SandboxError }
 
@@ -125,6 +135,12 @@ func IsConflict(err error) bool {
 func IsNotFound(err error) bool {
 	var notFoundErr *NotFoundError
 	return errors.As(err, &notFoundErr)
+}
+
+// IsPaymentRequired reports whether err is, or wraps, a PaymentRequiredError.
+func IsPaymentRequired(err error) bool {
+	var paymentRequiredErr *PaymentRequiredError
+	return errors.As(err, &paymentRequiredErr)
 }
 
 // IsTimeout reports whether err represents a timeout, including transport-level

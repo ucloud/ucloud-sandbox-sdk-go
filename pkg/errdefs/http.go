@@ -1,6 +1,8 @@
 package errdefs
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // FromHTTP turns a non-2xx response into the matching error type. body is the
 // raw response body, which BodyMessage reduces to its human-readable part: the
@@ -19,6 +21,8 @@ func FromHTTP(statusCode int, body string) error {
 		return &InvalidArgumentError{SandboxError{Message: message}}
 	case 401:
 		return &AuthenticationError{SandboxError{Message: message}}
+	case 402:
+		return &PaymentRequiredError{SandboxError{Message: message}}
 	case 403:
 		return &ForbiddenError{SandboxError{Message: message}}
 	case 404:
