@@ -1,5 +1,7 @@
 package sandbox
 
+import "fmt"
+
 // Metadata the SDK attaches to every sandbox it creates, recording which
 // product opened it. Set it with CreateOptions.ManageBy.
 const (
@@ -25,4 +27,8 @@ func ParseManageBy(metadata map[string]string) string {
 	default:
 		return ManageByUnknown
 	}
+}
+
+func FilterByManageBy(manager string) string {
+	return fmt.Sprintf("%s=%s", ManageByMetadataKey, manager)
 }
