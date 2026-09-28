@@ -3,6 +3,8 @@ package transport
 import (
 	"context"
 	"net/http"
+
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 )
 
 // NextTokenHeader carries the cursor for the next page. The list endpoints
@@ -67,6 +69,34 @@ func (p *Paginator[T]) All(ctx context.Context) ([]T, error) {
 		all = append(all, items...)
 	}
 	return all, nil
+}
+
+// PageResponse is a generated ...WithResponse result of a paged listing. See
+// the Page methods in pkg/api.
+type PageResponse[T any] interface {
+	Page() (items *[]T, resp *http.Response, body []byte)
+}
+
+// ListFunc is a generated ...WithResponse method of a paged listing.
+type ListFunc[Q any, R any] func(ctx context.Context, params *Q, reqEditors ...api.RequestEditorFn) (R, error)
+
+// Paginate returns a Paginator over a generated listing endpoint. Each page is
+// asked for with its own copy of params pointed at the page's cursor, so the
+// caller's struct is never written to. No request is made until the paginator
+// is walked.
+func Paginate[T any, Q any, P api.PaginateParams[Q], R PageResponse[T]](params *Q, list ListFunc[Q, R]) *Paginator[T] {
+	return NewPaginator(func(ctx context.Context, token string) ([]T, string, error) {
+		r, err := list(ctx, api.PageParams[Q, P](params, token))
+		if err != nil {
+			return nil, "", err
+		}
+		parsed, resp, body := r.Page()
+		page, err := Parsed(parsed, resp, body)
+		if err != nil {
+			return nil, "", err
+		}
+		return *page, NextTokenFrom(resp.Header), nil
+	})
 }
 
 // NextTokenFrom reads the pagination cursor out of a response's headers.
