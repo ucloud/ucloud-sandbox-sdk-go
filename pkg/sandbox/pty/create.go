@@ -38,7 +38,9 @@ func (p *Pty) Create(ctx context.Context, size Size, opts commands.Options) (*Ha
 	}
 
 	handle := newPtyHandle(p, 0)
-	go handle.consume(commands.StartStream{ServerStreamForClient: stream})
+	if err := handle.start(commands.StartStream{ServerStreamForClient: stream}); err != nil {
+		return nil, err
+	}
 
 	return handle, nil
 }

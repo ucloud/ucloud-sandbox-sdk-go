@@ -9,7 +9,11 @@ import (
 )
 
 // Connect attaches to a pseudo-terminal already open in the sandbox, so it can
-// be driven from a different client than the one that created it.
+// be driven from a different client than the one that created it, or picked
+// up again after the stream to it dropped.
+//
+// Output produced while no stream was attached is not replayed. A terminal
+// whose process has exited is reported as a NotFound error.
 func (p *Pty) Connect(ctx context.Context, pid int, opts commands.Options) (*Handle, error) {
 	req := &process.ConnectRequest{Process: commands.SelectorForPID(pid)}
 
@@ -19,7 +23,9 @@ func (p *Pty) Connect(ctx context.Context, pid int, opts commands.Options) (*Han
 	}
 
 	handle := newPtyHandle(p, pid)
-	go handle.consume(commands.ConnectStream{ServerStreamForClient: stream})
+	if err := handle.start(commands.ConnectStream{ServerStreamForClient: stream}); err != nil {
+		return nil, err
+	}
 
 	return handle, nil
 }

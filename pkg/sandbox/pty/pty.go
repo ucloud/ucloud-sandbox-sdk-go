@@ -90,6 +90,33 @@ func ptySize(size Size) *process.PTY {
 	}
 }
 
+// start reads the stream's first event, which carries the PID, and then hands
+// the rest of the stream to consume.
+//
+// Waiting for it is what makes Handle.PID usable as soon as Create or Connect
+// returns: SendStdin, Resize and a later Connect all address the process by
+// it, and zero addresses no process at all. It also reports a stream refused
+// outright — the process already gone, say — from the call, not from Wait.
+func (h *Handle) start(stream commands.ProcessStream) error {
+	if !stream.Receive() {
+		defer stream.Close()
+		if err := stream.Err(); err != nil {
+			return errdefs.FromConnect(err)
+		}
+		return commands.StreamEndEarly()
+	}
+
+	event, ok := stream.Event().GetEvent().(*process.ProcessEvent_Start)
+	if !ok {
+		stream.Close()
+		return &errdefs.SandboxError{Message: "process stream did not begin with a start event"}
+	}
+	h.PID = int(event.Start.GetPid())
+
+	go h.consume(stream)
+	return nil
+}
+
 // consume drains a PTY stream into the handle.
 func (h *Handle) consume(stream commands.ProcessStream) {
 	defer close(h.done)
@@ -98,9 +125,6 @@ func (h *Handle) consume(stream commands.ProcessStream) {
 
 	for stream.Receive() {
 		switch event := stream.Event().GetEvent().(type) {
-		case *process.ProcessEvent_Start:
-			h.PID = int(event.Start.GetPid())
-
 		case *process.ProcessEvent_Data:
 			if data, ok := event.Data.GetOutput().(*process.ProcessEvent_DataEvent_Pty); ok {
 				h.output <- data.Pty

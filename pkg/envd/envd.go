@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"net/http"
 	"strconv"
+	"time"
 
 	"connectrpc.com/connect"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
@@ -96,10 +97,22 @@ func newConn(httpClient *http.Client, baseURL, sandboxID, accessToken, trafficTo
 		Version: version,
 	}
 
-	interceptor := connect.WithInterceptors(headerInterceptor{conn: conn})
+	// http.Client.Timeout covers reading the whole response body, so on a
+	// server stream it is a hard cap on the stream's lifetime: an interactive
+	// terminal was cut off with "Client.Timeout ... while reading body" once
+	// it had been open that long. The connect clients therefore get a copy of
+	// the client without it, and unary calls get the same bound back as a
+	// context deadline instead.
+	streamClient := *httpClient
+	streamClient.Timeout = 0
 
-	conn.Process = processconnect.NewProcessClient(httpClient, baseURL, interceptor)
-	conn.Filesystem = filesystemconnect.NewFilesystemClient(httpClient, baseURL, interceptor)
+	interceptor := connect.WithInterceptors(headerInterceptor{
+		conn:         conn,
+		unaryTimeout: httpClient.Timeout,
+	})
+
+	conn.Process = processconnect.NewProcessClient(&streamClient, baseURL, interceptor)
+	conn.Filesystem = filesystemconnect.NewFilesystemClient(&streamClient, baseURL, interceptor)
 
 	filesClient, err := envdapi.NewClientWithResponses(
 		baseURL,
@@ -133,11 +146,27 @@ func (c *Connection) applyHeaders(header http.Header) {
 // interceptor they reached envd carrying no access token and were rejected
 // with a 401 — which surfaced only once the stream was read, not when the call
 // was made.
-type headerInterceptor struct{ conn *Connection }
+//
+// It also bounds unary calls by unaryTimeout, which the connect clients' HTTP
+// client no longer does itself. Streams are left unbounded: they end when the
+// process does, or when the caller cancels their context.
+type headerInterceptor struct {
+	conn *Connection
+
+	unaryTimeout time.Duration
+}
 
 func (i headerInterceptor) WrapUnary(next connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, req connect.AnyRequest) (connect.AnyResponse, error) {
 		i.conn.applyHeaders(req.Header())
+
+		// A deadline the caller chose is taken as deliberate and left alone;
+		// only an unbounded context gets the default one.
+		if _, ok := ctx.Deadline(); !ok && i.unaryTimeout > 0 {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithTimeout(ctx, i.unaryTimeout)
+			defer cancel()
+		}
 		return next(ctx, req)
 	}
 }
