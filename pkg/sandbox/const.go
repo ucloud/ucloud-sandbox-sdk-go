@@ -1,6 +1,10 @@
 package sandbox
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
+)
 
 // Metadata the SDK attaches to every sandbox it creates, recording which
 // product opened it. Set it with CreateOptions.ManageBy.
@@ -20,7 +24,11 @@ const AllTraffic = "0.0.0.0/0"
 
 // ParseManageBy reads the manage-by marker out of a sandbox's metadata,
 // reporting ManageByUnknown for anything it does not recognise.
-func ParseManageBy(metadata map[string]string) string {
+func ParseManageBy(metadataPtr *api.SandboxMetadata) string {
+	if metadataPtr == nil {
+		return ManageByUnknown
+	}
+	metadata := *metadataPtr
 	switch value := metadata[ManageByMetadataKey]; value {
 	case ManageByDefault, ManageBySite, ManageByCodeBox, ManageByRagView, ManageBySkillLab:
 		return value
