@@ -88,3 +88,7 @@ func (s *Sandbox) SetTimeout(ctx context.Context, sandboxID string, timeoutSecon
 func (s *Sandbox) UpdateNetwork(ctx context.Context, update api.SandboxNetworkUpdateConfig) error {
 	return NewService(s.client).UpdateNetwork(ctx, s.SandboxID, update)
 }
+
+func (s *Sandbox) GetDetail(ctx context.Context) (*api.SandboxDetail, error) {
+	return NewService(s.client).Get(ctx, s.SandboxID)
+}
