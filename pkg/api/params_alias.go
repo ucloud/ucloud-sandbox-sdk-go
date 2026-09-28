@@ -15,3 +15,5 @@ type TemplateBuildLogsParams = GetTemplatesTemplateIDBuildsBuildIDLogsParams
 type TemplateBuildStatusParams = GetTemplatesTemplateIDBuildsBuildIDStatusParams
 
 type TemplateGetParams = GetTemplatesTemplateIDParams
+
+type TemplateListParamsV2 = GetV2TemplatesParams
