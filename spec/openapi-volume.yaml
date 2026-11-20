@@ -1,0 +1,212 @@
+openapi: 3.0.0
+info:
+  title: Gateway Volume API
+  version: 0.1.0
+  description: Independent cloud NFS volumes, scoped to the company and project resolved from the API key. JSON fields follow E2B lower camelCase naming, preserving ID and IP initialisms.
+security:
+  - APIKey: []
+components:
+  securitySchemes:
+    APIKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  parameters:
+    VolumeID:
+      in: path
+      name: volumeID
+      required: true
+      schema:
+        type: string
+        format: uuid
+  schemas:
+    ExtraParams:
+      type: object
+      additionalProperties: true
+      description: Provider-specific creation options. UCloud accepts storageType (Basic or Advanced), defaulting to Basic within the provider.
+      example: {storageType: Advanced}
+    CreateVolume:
+      type: object
+      additionalProperties: false
+      required: [name, sizeGiB]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 128
+          pattern: '^[A-Za-z0-9]([A-Za-z0-9_-]*[A-Za-z0-9])?$'
+        sizeGiB:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Capacity in GiB. UCloud requires at least 500 GiB for Basic (the default), or 100 GiB for Advanced. Invalid capacity returns HTTP 400 before cloud creation.
+        extraParams:
+          $ref: '#/components/schemas/ExtraParams'
+    ResizeVolume:
+      type: object
+      additionalProperties: false
+      required: [sizeGiB]
+      properties:
+        sizeGiB:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Target capacity in GiB; shrinking is not supported.
+    Volume:
+      type: object
+      required: [volumeID, name, mountIP, sizeGiB, extraParams, createdAt, updatedAt]
+      properties:
+        volumeID:
+          type: string
+          format: uuid
+        name:
+          type: string
+        mountIP:
+          type: string
+          description: Valid IP address, without an NFS path suffix.
+        sizeGiB:
+          type: integer
+          format: int64
+        extraParams:
+          $ref: '#/components/schemas/ExtraParams'
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    VolumeDetail:
+      allOf:
+        - $ref: '#/components/schemas/Volume'
+        - type: object
+          required: [totalMountPointNum]
+          properties:
+            totalMountPointNum:
+              type: integer
+              description: Raw UFS cloud mount-point count. It is not the number of active sandbox mounts.
+    VolumeList:
+      type: object
+      required: [items, total]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Volume'
+        total:
+          type: integer
+          format: int64
+    Error:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+  responses:
+    Error:
+      description: Request rejected, database failure or cloud operation failure. Cloud timeouts return 504; cleanup failures may leave cloud resources behind.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+paths:
+  /v2/volumes:
+    post:
+      operationId: CreateVolume
+      summary: Create a cloud NFS volume synchronously
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          schema:
+            type: string
+            maxLength: 128
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateVolume'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+        '200':
+          description: Replayed successful idempotent request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+        default:
+          $ref: '#/components/responses/Error'
+    get:
+      operationId: ListVolumes
+      summary: List project volumes from the database without querying cloud resources
+      parameters:
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Database records ordered by creation time descending, then ID descending
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumeList'
+        default:
+          $ref: '#/components/responses/Error'
+  /v2/volumes/{volumeID}:
+    parameters:
+      - $ref: '#/components/parameters/VolumeID'
+    get:
+      operationId: GetVolume
+      summary: Query cloud details and correct the database capacity when it differs
+      responses:
+        '200':
+          description: Current volume details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VolumeDetail'
+        default:
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: ResizeVolume
+      summary: Expand the cloud resource first, then update the database
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResizeVolume'
+      responses:
+        '200':
+          description: Expanded or already at the requested capacity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Volume'
+        default:
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: DeleteVolume
+      summary: Commit database deletion before cleaning up cloud resources, without rollback
+      description: Beta does not check whether a sandbox is still using the volume.
+      responses:
+        '204':
+          description: Removed, or database record already absent
+        default:
+          $ref: '#/components/responses/Error'

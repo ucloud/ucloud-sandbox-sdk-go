@@ -78,14 +78,54 @@ c, err := client.New(client.Options{
 
 | Package | What it does |
 | --- | --- |
-| [`pkg/client`](pkg/client) | Entry point. `New` plus the four services below. |
+| [`pkg/client`](pkg/client) | Entry point. `New` plus the services below. |
 | [`pkg/sandbox`](pkg/sandbox) | Sandboxes, and the commands, files and PTYs inside them. |
 | [`pkg/template`](pkg/template) | Building the images sandboxes boot from. |
 | [`pkg/volume`](pkg/volume) | Persistent volumes. |
+| [`pkg/volume/v2`](pkg/volume/v2) | Project cloud NFS volumes and sandbox mount metadata. |
 | [`pkg/secret`](pkg/secret) | Project secrets. |
 | [`pkg/errdefs`](pkg/errdefs) | Error types, and the mappings that produce them. |
 | [`pkg/transport`](pkg/transport) | HTTP plumbing. Rarely used directly. |
 | [`pkg/api`](pkg/api), [`pkg/envd`](pkg/envd) | Generated clients. See below. |
+
+### Cloud NFS volumes (v2)
+
+`c.VolumesV2()` exposes `Create`, `List`, `Get`, `Resize`, and `Delete` for
+`/v2/volumes`. Use the generated types from `pkg/volume/v2/api`:
+
+```go
+import (
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
+	volume "github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/v2"
+	volumeapi "github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/v2/api"
+)
+
+v, err := c.VolumesV2().Create(ctx, volumeapi.CreateVolume{
+	Name: "test-volume", SizeGiB: 100,
+	ExtraParams: new(volumeapi.ExtraParams{"storageType": "Advanced"}),
+}, nil)
+if err != nil {
+	return err
+}
+
+req := volume.WithMount(api.NewSandbox{TemplateID: "base"}, v.Name, "/mnt")
+sbx, err := c.Sandboxes().Create(ctx, req, "")
+```
+
+`WithMount` returns a copy of the request with
+`metadata["volume.v2.sandbox.ucloudai.com:test-volume"] = "/mnt"`, preserving
+existing metadata. Chain calls to mount multiple volumes. Mounts refer to the
+volume's **name**; `Get`, `Resize`, and `Delete` take its UUID (`v.VolumeID`).
+
+Pass `&volumeapi.CreateVolumeParams{IdempotencyKey: new("unique-request-key")}` instead
+of `nil` to make creation idempotent. `List(ctx, &volumeapi.ListVolumesParams{Offset:
+new(0), Limit: new(20)})` returns a page with `Items` and `Total`; `nil` uses
+the server defaults. UCloud Basic storage, the default, requires at least
+500 GiB; Advanced requires at least 100 GiB. Resize only expands a volume.
+`Delete` returns an error on cloud cleanup failure and succeeds if the record
+is already absent. Stop sandboxes using the volume before deleting it.
+
+See [`examples/volume-v2`](examples/volume-v2) for a runnable example.
 
 ### Errors
 
@@ -114,7 +154,9 @@ make test
 
 The generated code is committed, so `go get` works without any of this.
 
-`spec/openapi.yml` describes the control plane. envd's specs come from
+`spec/openapi.yml` describes the control plane. `spec/openapi-volume.yaml`
+describes the independent v2 volume extension; regenerate its client with
+`make generate-volume-v2` (also included in `make generate`). envd's specs come from
 [e2b-dev/runtime](https://github.com/e2b-dev/runtime), vendored under
 `submodules/` and pinned to a tag; see [`pkg/envd/README.md`](pkg/envd/README.md).
 `submodules/ucloud-sandbox-sdk-python` is the Python SDK, kept only as a
