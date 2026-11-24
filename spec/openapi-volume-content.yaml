@@ -1,0 +1,277 @@
+openapi: 3.0.0
+info:
+  title: Volume v2 Content API
+  version: 0.1.0
+  description: File and directory operations on volumes.
+security:
+  - APIKey: []
+components:
+  securitySchemes:
+    APIKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  parameters:
+    VolumeID:
+      in: path
+      name: volumeID
+      required: true
+      schema:
+        type: string
+        format: uuid
+    Path:
+      in: query
+      name: path
+      required: true
+      description: Path within the volume; use / for the root.
+      schema:
+        type: string
+        minLength: 1
+    Force:
+      in: query
+      name: force
+      description: Overwrite files or create missing parents; accept existing directories.
+      schema:
+        type: boolean
+        default: false
+    UID:
+      in: query
+      name: uid
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+        maximum: 4294967294
+    GID:
+      in: query
+      name: gid
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+        maximum: 4294967294
+    Mode:
+      in: query
+      name: mode
+      description: Decimal permission bits; e.g. 420 means octal 0644.
+      schema:
+        type: integer
+        minimum: 0
+        maximum: 511
+  schemas:
+    Entry:
+      type: object
+      required:
+        - name
+        - type
+        - path
+        - size
+        - mode
+        - uid
+        - gid
+        - atime
+        - mtime
+        - ctime
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+          enum:
+            - file
+            - directory
+            - symlink
+        path:
+          type: string
+        size:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Bytes; directories report zero.
+        mode:
+          type: integer
+          minimum: 0
+          maximum: 511
+        uid:
+          type: integer
+          format: int64
+        gid:
+          type: integer
+          format: int64
+        atime:
+          type: string
+          format: date-time
+        mtime:
+          type: string
+          format: date-time
+        ctime:
+          type: string
+          format: date-time
+          description: Inode metadata change time.
+        target:
+          type: string
+          description: Target of a symlink.
+    Metadata:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        uid:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 4294967294
+        gid:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 4294967294
+        mode:
+          type: integer
+          minimum: 0
+          maximum: 511
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+        message:
+          type: string
+  responses:
+    Error:
+      description: Error response.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+paths:
+  /v2/volumecontent/{volumeID}/file:
+    parameters:
+      - $ref: "#/components/parameters/VolumeID"
+      - $ref: "#/components/parameters/Path"
+    get:
+      operationId: ReadVolumeFile
+      summary: Download a file
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        default:
+          $ref: "#/components/responses/Error"
+    put:
+      operationId: WriteVolumeFile
+      summary: Upload a file
+      parameters:
+        - $ref: "#/components/parameters/Force"
+        - $ref: "#/components/parameters/UID"
+        - $ref: "#/components/parameters/GID"
+        - $ref: "#/components/parameters/Mode"
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "201":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        default:
+          $ref: "#/components/responses/Error"
+  /v2/volumecontent/{volumeID}/dir:
+    parameters:
+      - $ref: "#/components/parameters/VolumeID"
+      - $ref: "#/components/parameters/Path"
+    get:
+      operationId: ListVolumeDirectory
+      summary: List directory entries
+      parameters:
+        - in: query
+          name: depth
+          schema:
+            type: integer
+            default: 1
+            minimum: 1
+            maximum: 10
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Entry"
+        default:
+          $ref: "#/components/responses/Error"
+    post:
+      operationId: CreateVolumeDirectory
+      summary: Create a directory
+      parameters:
+        - $ref: "#/components/parameters/Force"
+        - $ref: "#/components/parameters/UID"
+        - $ref: "#/components/parameters/GID"
+        - $ref: "#/components/parameters/Mode"
+      responses:
+        "201":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        default:
+          $ref: "#/components/responses/Error"
+  /v2/volumecontent/{volumeID}/path:
+    parameters:
+      - $ref: "#/components/parameters/VolumeID"
+      - $ref: "#/components/parameters/Path"
+    get:
+      operationId: StatVolumePath
+      summary: Get path metadata
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        default:
+          $ref: "#/components/responses/Error"
+    patch:
+      operationId: UpdateVolumeMetadata
+      summary: Update ownership or permissions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Metadata"
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        default:
+          $ref: "#/components/responses/Error"
+    delete:
+      operationId: DeleteVolumePath
+      summary: Delete a file or directory recursively
+      description: The volume root cannot be deleted.
+      responses:
+        "204":
+          description: Successful
+        default:
+          $ref: "#/components/responses/Error"

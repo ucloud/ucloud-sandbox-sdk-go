@@ -134,6 +134,10 @@ func (c *Client) Domain() string { return c.cfg.domain }
 // APIURL returns the resolved control-plane base URL, without a trailing slash.
 func (c *Client) APIURL() string { return c.cfg.apiURL }
 
+// VolumeContentURL returns the resolved volume content API base URL, without a
+// trailing slash.
+func (c *Client) VolumeContentURL() string { return c.cfg.volumeContentURL }
+
 // Headers returns the extra headers added to every request. The returned map
 // must not be modified.
 func (c *Client) Headers() map[string]string { return c.cfg.headers }

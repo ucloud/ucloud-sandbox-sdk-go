@@ -24,6 +24,9 @@ const DefaultRetries = 3
 //	domain    Config.Domain, Config.Region, UCLOUD_SANDBOX_REGION,
 //	          UCLOUD_SANDBOX_DOMAIN, cn-wlcb.sandbox.ucloudai.com
 //	API URL   Config.APIURL, UCLOUD_SANDBOX_API_URL, {scheme}://api.{domain}
+//	volume content URL
+//	          Config.VolumeContentURL, UCLOUD_SANDBOX_VOLUME_CONTENT_URL,
+//	          {scheme}://volumecontent.{domain}
 //	scheme    http when InsecureHTTP or Debug is set, https otherwise
 type Config struct {
 	// APIKey authenticates every control-plane request, sent as X-API-Key.
@@ -41,6 +44,11 @@ type Config struct {
 	// Set it to reach a private deployment by address, for example
 	// "http://10.10.0.5:8080".
 	APIURL string
+
+	// VolumeContentURL is the full base URL of the volume content API, which
+	// is served from its own host rather than the control plane. It overrides
+	// Domain and Region, and is not derived from APIURL.
+	VolumeContentURL string
 
 	// SandboxURL pins the URL used to reach sandboxes, instead of deriving one
 	// per sandbox from its ID and domain.
@@ -78,17 +86,18 @@ type Config struct {
 
 // resolved is a Config with every fallback applied, computed once by New.
 type resolved struct {
-	apiKey          string
-	region          string
-	domain          string
-	apiURL          string
-	sandboxURL      string
-	headers         map[string]string
-	requestTimeout  time.Duration
-	retries         int
-	insecureHTTP    bool
-	insecureSkipTLS bool
-	debug           bool
+	apiKey           string
+	region           string
+	domain           string
+	apiURL           string
+	volumeContentURL string
+	sandboxURL       string
+	headers          map[string]string
+	requestTimeout   time.Duration
+	retries          int
+	insecureHTTP     bool
+	insecureSkipTLS  bool
+	debug            bool
 }
 
 // resolve applies the environment and default fallbacks documented on Config.
@@ -126,6 +135,12 @@ func (c Config) resolve() (resolved, error) {
 		r.apiURL = r.scheme() + "://api." + r.domain
 	}
 	r.apiURL = strings.TrimRight(r.apiURL, "/")
+
+	r.volumeContentURL = firstNonEmpty(c.VolumeContentURL, os.Getenv(EnvVolumeContentURL))
+	if r.volumeContentURL == "" {
+		r.volumeContentURL = r.scheme() + "://volumecontent." + r.domain
+	}
+	r.volumeContentURL = strings.TrimRight(r.volumeContentURL, "/")
 
 	return r, nil
 }

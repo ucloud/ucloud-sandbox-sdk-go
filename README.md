@@ -82,7 +82,7 @@ c, err := client.New(client.Options{
 | [`pkg/sandbox`](pkg/sandbox) | Sandboxes, and the commands, files and PTYs inside them. |
 | [`pkg/template`](pkg/template) | Building the images sandboxes boot from. |
 | [`pkg/volume`](pkg/volume) | Persistent volumes. |
-| [`pkg/volume/v2`](pkg/volume/v2) | Project cloud NFS volumes and sandbox mount metadata. |
+| [`pkg/volume/v2`](pkg/volume/v2) | Project cloud NFS volumes, their file content, and sandbox mount metadata. |
 | [`pkg/secret`](pkg/secret) | Project secrets. |
 | [`pkg/errdefs`](pkg/errdefs) | Error types, and the mappings that produce them. |
 | [`pkg/transport`](pkg/transport) | HTTP plumbing. Rarely used directly. |
@@ -125,6 +125,26 @@ the server defaults. UCloud Basic storage, the default, requires at least
 `Delete` returns an error on cloud cleanup failure and succeeds if the record
 is already absent. Stop sandboxes using the volume before deleting it.
 
+#### Volume content
+
+`c.VolumeContentV2(volumeID)` reads and writes the files of a volume without
+mounting it. Paths are relative to the volume root (`/`).
+
+```go
+vc := c.VolumeContentV2(v.VolumeID)
+_, err = vc.WriteFile(ctx, "/data/note.txt", strings.NewReader("hello"),
+	&volume.CreateOptions{Force: true, Mode: new(fs.FileMode(0o644))})
+rc, err := vc.ReadFile(ctx, "/data/note.txt") // caller closes rc
+entries, err := vc.ListDir(ctx, "/data", 1)
+```
+
+It also offers `MakeDir`, `Stat`, `Exists`, `UpdateMetadata`, and `Remove`
+(recursive). The content API is served from its own host,
+`volumecontent.{domain}` (for example
+`volumecontent.cn-wlcb.sandbox.ucloudai.com`); override it with
+`Options.VolumeContentURL` or `UCLOUD_SANDBOX_VOLUME_CONTENT_URL`. Setting
+`APIURL` does not change it.
+
 See [`examples/volume-v2`](examples/volume-v2) for a runnable example.
 
 ### Errors
@@ -154,8 +174,9 @@ make test
 
 The generated code is committed, so `go get` works without any of this.
 
-`spec/openapi.yml` describes the control plane. `spec/openapi-volume.yaml`
-describes the independent v2 volume extension; regenerate its client with
+`spec/openapi.yml` describes the control plane. `spec/openapi-volume.yaml` and
+`spec/openapi-volume-content.yaml` describe the independent v2 volume extension
+and its content API; regenerate their clients with
 `make generate-volume-v2` (also included in `make generate`). envd's specs come from
 [e2b-dev/runtime](https://github.com/e2b-dev/runtime), vendored under
 `submodules/` and pinned to a tag; see [`pkg/envd/README.md`](pkg/envd/README.md).

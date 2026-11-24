@@ -15,7 +15,7 @@ func clearEnv(t *testing.T) {
 	t.Helper()
 	for _, name := range []string{
 		EnvAPIKey, EnvRegion, EnvDomain, EnvAPIURL,
-		EnvSandboxURL, EnvDebug, EnvInsecureHTTP,
+		EnvSandboxURL, EnvDebug, EnvInsecureHTTP, EnvVolumeContentURL,
 	} {
 		t.Setenv(name, "")
 	}
@@ -132,6 +132,60 @@ func TestResolveEndpoints(t *testing.T) {
 			assert.Equal(t, tt.wantRegion, got.region, "region")
 			assert.Equal(t, tt.wantDomain, got.domain, "domain")
 			assert.Equal(t, tt.wantAPIURL, got.apiURL, "apiURL")
+		})
+	}
+}
+
+func TestResolveVolumeContentURL(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+		cfg  Config
+		want string
+	}{
+		{
+			name: "default",
+			cfg:  Config{APIKey: "k"},
+			want: "https://volumecontent.cn-wlcb.sandbox.ucloudai.com",
+		},
+		{
+			name: "region",
+			cfg:  Config{APIKey: "k", Region: "us-ca"},
+			want: "https://volumecontent.us-ca.sandbox.ucloudai.com",
+		},
+		{
+			name: "domain",
+			cfg:  Config{APIKey: "k", Domain: "sandbox.internal.corp", InsecureHTTP: true},
+			want: "http://volumecontent.sandbox.internal.corp",
+		},
+		{
+			name: "API URL does not affect it",
+			cfg:  Config{APIKey: "k", Region: "us-ca", APIURL: "http://10.0.0.5:8080"},
+			want: "https://volumecontent.us-ca.sandbox.ucloudai.com",
+		},
+		{
+			name: "env",
+			env:  map[string]string{EnvVolumeContentURL: "http://from-env/"},
+			cfg:  Config{APIKey: "k", Region: "us-ca"},
+			want: "http://from-env",
+		},
+		{
+			name: "config beats env",
+			env:  map[string]string{EnvVolumeContentURL: "http://from-env"},
+			cfg:  Config{APIKey: "k", VolumeContentURL: "http://from-config/"},
+			want: "http://from-config",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearEnv(t)
+			for k, v := range tt.env {
+				t.Setenv(k, v)
+			}
+			got, err := tt.cfg.resolve()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got.volumeContentURL)
 		})
 	}
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume"
 	volumev2 "github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/v2"
+	volumev2api "github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/v2/api"
 )
 
 // Options configures a Client.
@@ -74,6 +75,12 @@ func (c *Client) Volumes() *volume.Service { return c.volumes }
 
 // VolumesV2 manages project-scoped cloud NFS volumes.
 func (c *Client) VolumesV2() *volumev2.Service { return c.volumesV2 }
+
+// VolumeContentV2 reads and writes the files of the v2 volume with the given
+// UUID, through the volume content API at volumecontent.{domain}.
+func (c *Client) VolumeContentV2(volumeID volumev2api.VolumeID) *volumev2.Content {
+	return c.volumesV2.Content(volumeID)
+}
 
 // Secrets manages project secrets.
 func (c *Client) Secrets() *secret.Service { return c.secrets }

@@ -20,13 +20,13 @@ import (
 
 // CreateVolume defines model for CreateVolume.
 type CreateVolume struct {
-	// ExtraParams Provider-specific creation options. UCloud accepts storageType (Basic or Advanced), defaulting to Basic within the provider.
+	// ExtraParams Additional creation options, such as storageType (Basic or Advanced).
 	//
 	// Example: {"storageType":"Advanced"}
 	ExtraParams *ExtraParams `json:"extraParams,omitempty"`
 	Name        string       `json:"name"`
 
-	// SizeGiB Capacity in GiB. UCloud requires at least 500 GiB for Basic (the default), or 100 GiB for Advanced. Invalid capacity returns HTTP 400 before cloud creation.
+	// SizeGiB Capacity in GiB. Minimum 500 for Basic or 100 for Advanced.
 	SizeGiB int64 `json:"sizeGiB"`
 }
 
@@ -36,14 +36,14 @@ type Error struct {
 	Message string `json:"message"`
 }
 
-// ExtraParams Provider-specific creation options. UCloud accepts storageType (Basic or Advanced), defaulting to Basic within the provider.
+// ExtraParams Additional creation options, such as storageType (Basic or Advanced).
 //
 // Example: {"storageType":"Advanced"}
 type ExtraParams map[string]interface{}
 
 // ResizeVolume defines model for ResizeVolume.
 type ResizeVolume struct {
-	// SizeGiB Target capacity in GiB; shrinking is not supported.
+	// SizeGiB Target capacity in GiB; expansion only.
 	SizeGiB int64 `json:"sizeGiB"`
 }
 
@@ -51,12 +51,12 @@ type ResizeVolume struct {
 type Volume struct {
 	CreatedAt time.Time `json:"createdAt"`
 
-	// ExtraParams Provider-specific creation options. UCloud accepts storageType (Basic or Advanced), defaulting to Basic within the provider.
+	// ExtraParams Additional creation options, such as storageType (Basic or Advanced).
 	//
 	// Example: {"storageType":"Advanced"}
 	ExtraParams ExtraParams `json:"extraParams"`
 
-	// MountIP Valid IP address, without an NFS path suffix.
+	// MountIP NFS mount IP address.
 	MountIP   string             `json:"mountIP"`
 	Name      string             `json:"name"`
 	SizeGiB   int64              `json:"sizeGiB"`
@@ -68,17 +68,17 @@ type Volume struct {
 type VolumeDetail struct {
 	CreatedAt time.Time `json:"createdAt"`
 
-	// ExtraParams Provider-specific creation options. UCloud accepts storageType (Basic or Advanced), defaulting to Basic within the provider.
+	// ExtraParams Additional creation options, such as storageType (Basic or Advanced).
 	//
 	// Example: {"storageType":"Advanced"}
 	ExtraParams ExtraParams `json:"extraParams"`
 
-	// MountIP Valid IP address, without an NFS path suffix.
+	// MountIP NFS mount IP address.
 	MountIP string `json:"mountIP"`
 	Name    string `json:"name"`
 	SizeGiB int64  `json:"sizeGiB"`
 
-	// TotalMountPointNum Raw UFS cloud mount-point count. It is not the number of active sandbox mounts.
+	// TotalMountPointNum Number of cloud mount points.
 	TotalMountPointNum int                `json:"totalMountPointNum"`
 	UpdatedAt          time.Time          `json:"updatedAt"`
 	VolumeID           openapi_types.UUID `json:"volumeID"`
@@ -184,45 +184,43 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 // The interface specification for the client above.
 type ClientInterface interface {
 
-	// ListVolumes List project volumes from the database without querying cloud resources
+	// ListVolumes List volumes
 	//
 	// Corresponds with GET /v2/volumes (the `ListVolumes` operationId).
 	ListVolumes(ctx context.Context, params *ListVolumesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateVolumeWithBody Create a cloud NFS volume synchronously
+	// CreateVolumeWithBody Create a volume
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /v2/volumes (the `CreateVolume` operationId).
 	CreateVolumeWithBody(ctx context.Context, params *CreateVolumeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// CreateVolume Create a cloud NFS volume synchronously
+	// CreateVolume Create a volume
 	//
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with POST /v2/volumes (the `CreateVolume` operationId).
 	CreateVolume(ctx context.Context, params *CreateVolumeParams, body CreateVolumeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// DeleteVolume Commit database deletion before cleaning up cloud resources, without rollback
-	//
-	// Beta does not check whether a sandbox is still using the volume.
+	// DeleteVolume Delete a volume
 	//
 	// Corresponds with DELETE /v2/volumes/{volumeID} (the `DeleteVolume` operationId).
 	DeleteVolume(ctx context.Context, volumeID VolumeID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// GetVolume Query cloud details and correct the database capacity when it differs
+	// GetVolume Get volume details
 	//
 	// Corresponds with GET /v2/volumes/{volumeID} (the `GetVolume` operationId).
 	GetVolume(ctx context.Context, volumeID VolumeID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ResizeVolumeWithBody Expand the cloud resource first, then update the database
+	// ResizeVolumeWithBody Expand a volume
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with PATCH /v2/volumes/{volumeID} (the `ResizeVolume` operationId).
 	ResizeVolumeWithBody(ctx context.Context, volumeID VolumeID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// ResizeVolume Expand the cloud resource first, then update the database
+	// ResizeVolume Expand a volume
 	//
 	// Takes a body of the `application/json` content type.
 	//
@@ -230,7 +228,7 @@ type ClientInterface interface {
 	ResizeVolume(ctx context.Context, volumeID VolumeID, body ResizeVolumeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
-// ListVolumes List project volumes from the database without querying cloud resources
+// ListVolumes List volumes
 //
 // Corresponds with GET /v2/volumes (the `ListVolumes` operationId).
 func (c *Client) ListVolumes(ctx context.Context, params *ListVolumesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -245,7 +243,7 @@ func (c *Client) ListVolumes(ctx context.Context, params *ListVolumesParams, req
 	return c.Client.Do(req)
 }
 
-// CreateVolumeWithBody Create a cloud NFS volume synchronously
+// CreateVolumeWithBody Create a volume
 //
 // Takes any type of body and a specified content type.
 //
@@ -262,7 +260,7 @@ func (c *Client) CreateVolumeWithBody(ctx context.Context, params *CreateVolumeP
 	return c.Client.Do(req)
 }
 
-// CreateVolume Create a cloud NFS volume synchronously
+// CreateVolume Create a volume
 //
 // Takes a body of the `application/json` content type.
 //
@@ -279,9 +277,7 @@ func (c *Client) CreateVolume(ctx context.Context, params *CreateVolumeParams, b
 	return c.Client.Do(req)
 }
 
-// DeleteVolume Commit database deletion before cleaning up cloud resources, without rollback
-//
-// Beta does not check whether a sandbox is still using the volume.
+// DeleteVolume Delete a volume
 //
 // Corresponds with DELETE /v2/volumes/{volumeID} (the `DeleteVolume` operationId).
 func (c *Client) DeleteVolume(ctx context.Context, volumeID VolumeID, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -296,7 +292,7 @@ func (c *Client) DeleteVolume(ctx context.Context, volumeID VolumeID, reqEditors
 	return c.Client.Do(req)
 }
 
-// GetVolume Query cloud details and correct the database capacity when it differs
+// GetVolume Get volume details
 //
 // Corresponds with GET /v2/volumes/{volumeID} (the `GetVolume` operationId).
 func (c *Client) GetVolume(ctx context.Context, volumeID VolumeID, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -311,7 +307,7 @@ func (c *Client) GetVolume(ctx context.Context, volumeID VolumeID, reqEditors ..
 	return c.Client.Do(req)
 }
 
-// ResizeVolumeWithBody Expand the cloud resource first, then update the database
+// ResizeVolumeWithBody Expand a volume
 //
 // Takes any type of body and a specified content type.
 //
@@ -328,7 +324,7 @@ func (c *Client) ResizeVolumeWithBody(ctx context.Context, volumeID VolumeID, co
 	return c.Client.Do(req)
 }
 
-// ResizeVolume Expand the cloud resource first, then update the database
+// ResizeVolume Expand a volume
 //
 // Takes a body of the `application/json` content type.
 //
@@ -625,51 +621,49 @@ func WithBaseURL(baseURL string) ClientOption {
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
 
-	// ListVolumesWithResponse List project volumes from the database without querying cloud resources
+	// ListVolumesWithResponse List volumes
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /v2/volumes (the `ListVolumes` operationId).
 	ListVolumesWithResponse(ctx context.Context, params *ListVolumesParams, reqEditors ...RequestEditorFn) (*ListVolumesResponse, error)
 
-	// CreateVolumeWithBodyWithResponse Create a cloud NFS volume synchronously
+	// CreateVolumeWithBodyWithResponse Create a volume
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /v2/volumes (the `CreateVolume` operationId).
 	CreateVolumeWithBodyWithResponse(ctx context.Context, params *CreateVolumeParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateVolumeResponse, error)
 
-	// CreateVolumeWithResponse Create a cloud NFS volume synchronously
+	// CreateVolumeWithResponse Create a volume
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /v2/volumes (the `CreateVolume` operationId).
 	CreateVolumeWithResponse(ctx context.Context, params *CreateVolumeParams, body CreateVolumeJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateVolumeResponse, error)
 
-	// DeleteVolumeWithResponse Commit database deletion before cleaning up cloud resources, without rollback
-	//
-	// Beta does not check whether a sandbox is still using the volume.
+	// DeleteVolumeWithResponse Delete a volume
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with DELETE /v2/volumes/{volumeID} (the `DeleteVolume` operationId).
 	DeleteVolumeWithResponse(ctx context.Context, volumeID VolumeID, reqEditors ...RequestEditorFn) (*DeleteVolumeResponse, error)
 
-	// GetVolumeWithResponse Query cloud details and correct the database capacity when it differs
+	// GetVolumeWithResponse Get volume details
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with GET /v2/volumes/{volumeID} (the `GetVolume` operationId).
 	GetVolumeWithResponse(ctx context.Context, volumeID VolumeID, reqEditors ...RequestEditorFn) (*GetVolumeResponse, error)
 
-	// ResizeVolumeWithBodyWithResponse Expand the cloud resource first, then update the database
+	// ResizeVolumeWithBodyWithResponse Expand a volume
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with PATCH /v2/volumes/{volumeID} (the `ResizeVolume` operationId).
 	ResizeVolumeWithBodyWithResponse(ctx context.Context, volumeID VolumeID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*ResizeVolumeResponse, error)
 
-	// ResizeVolumeWithResponse Expand the cloud resource first, then update the database
+	// ResizeVolumeWithResponse Expand a volume
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
@@ -917,7 +911,7 @@ func (r ResizeVolumeResponse) ContentType() string {
 	return ""
 }
 
-// ListVolumesWithResponse List project volumes from the database without querying cloud resources
+// ListVolumesWithResponse List volumes
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -930,7 +924,7 @@ func (c *ClientWithResponses) ListVolumesWithResponse(ctx context.Context, param
 	return ParseListVolumesResponse(rsp)
 }
 
-// CreateVolumeWithBodyWithResponse Create a cloud NFS volume synchronously
+// CreateVolumeWithBodyWithResponse Create a volume
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -943,7 +937,7 @@ func (c *ClientWithResponses) CreateVolumeWithBodyWithResponse(ctx context.Conte
 	return ParseCreateVolumeResponse(rsp)
 }
 
-// CreateVolumeWithResponse Create a cloud NFS volume synchronously
+// CreateVolumeWithResponse Create a volume
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
@@ -956,9 +950,7 @@ func (c *ClientWithResponses) CreateVolumeWithResponse(ctx context.Context, para
 	return ParseCreateVolumeResponse(rsp)
 }
 
-// DeleteVolumeWithResponse Commit database deletion before cleaning up cloud resources, without rollback
-//
-// Beta does not check whether a sandbox is still using the volume.
+// DeleteVolumeWithResponse Delete a volume
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -971,7 +963,7 @@ func (c *ClientWithResponses) DeleteVolumeWithResponse(ctx context.Context, volu
 	return ParseDeleteVolumeResponse(rsp)
 }
 
-// GetVolumeWithResponse Query cloud details and correct the database capacity when it differs
+// GetVolumeWithResponse Get volume details
 //
 // Returns a wrapper object for the known response body format(s).
 //
@@ -984,7 +976,7 @@ func (c *ClientWithResponses) GetVolumeWithResponse(ctx context.Context, volumeI
 	return ParseGetVolumeResponse(rsp)
 }
 
-// ResizeVolumeWithBodyWithResponse Expand the cloud resource first, then update the database
+// ResizeVolumeWithBodyWithResponse Expand a volume
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
@@ -997,7 +989,7 @@ func (c *ClientWithResponses) ResizeVolumeWithBodyWithResponse(ctx context.Conte
 	return ParseResizeVolumeResponse(rsp)
 }
 
-// ResizeVolumeWithResponse Expand the cloud resource first, then update the database
+// ResizeVolumeWithResponse Expand a volume
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //

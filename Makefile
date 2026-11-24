@@ -24,10 +24,13 @@ generate: generate-volume-v2
 	  --path $(ENVDSPEC)/filesystem
 	gofmt -w $(ROOT)/pkg/api $(ROOT)/pkg/envd
 
-## generate-volume-v2: regenerate the independent /v2/volumes client.
+## generate-volume-v2: regenerate the independent /v2/volumes and
+## /v2/volumecontent clients.
 generate-volume-v2:
 	$(GOTOOL) oapi-codegen -config $(ROOT)/spec/volume.v2.cfg.yaml \
 	  -o $(ROOT)/pkg/volume/v2/api/api.gen.go $(ROOT)/spec/openapi-volume.yaml
+	$(GOTOOL) oapi-codegen -config $(ROOT)/spec/volumecontent.v2.cfg.yaml \
+	  -o $(ROOT)/pkg/volume/v2/contentapi/api.gen.go $(ROOT)/spec/openapi-volume-content.yaml
 
 build:
 	go build ./...

@@ -1,0 +1,9 @@
+# The volume content API is served from its own host (volumecontent.{domain})
+# and has its own schema, so it gets a separate generated client.
+package: contentapi
+generate:
+  models: true
+  client: true
+  embedded-spec: false
+output-options:
+  skip-prune: true
