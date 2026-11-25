@@ -129,6 +129,7 @@ is already absent. Stop sandboxes using the volume before deleting it.
 
 `c.VolumeContentV2(volumeID)` reads and writes the files of a volume without
 mounting it. Paths are relative to the volume root (`/`).
+Rename parameters use the generated types from `pkg/volume/v2/contentapi`.
 
 ```go
 vc := c.VolumeContentV2(v.VolumeID)
@@ -136,7 +137,15 @@ _, err = vc.WriteFile(ctx, "/data/note.txt", strings.NewReader("hello"),
 	&volume.CreateOptions{Force: true, Mode: new(fs.FileMode(0o644))})
 rc, err := vc.ReadFile(ctx, "/data/note.txt") // caller closes rc
 entries, err := vc.ListDir(ctx, "/data", 1)
+entry, err := vc.Rename(ctx, &contentapi.RenameVolumePathParams{
+	Path: "/data/note.txt", NewPath: "/data/renamed.txt",
+})
 ```
+
+`Rename` moves a file or directory to the exact destination path and returns its
+metadata. Set `Force: new(true)` in the parameters to replace an existing file
+or empty directory. Both parent directories must exist; the volume root cannot
+be moved or replaced.
 
 It also offers `MakeDir`, `Stat`, `Exists`, `UpdateMetadata`, and `Remove`
 (recursive). The content API is served from its own host,

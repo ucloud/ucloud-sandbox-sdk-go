@@ -154,6 +154,18 @@ type UpdateVolumeMetadataParams struct {
 	Path Path `form:"path" json:"path"`
 }
 
+// RenameVolumePathParams defines parameters for RenameVolumePath.
+type RenameVolumePathParams struct {
+	// NewPath Destination path within the volume.
+	NewPath string `form:"newPath" json:"newPath"`
+
+	// Force Replace an existing file or empty directory. Nonempty target directories cannot be replaced.
+	Force *bool `form:"force,omitempty" json:"force,omitempty"`
+
+	// Path Path within the volume; use / for the root.
+	Path Path `form:"path" json:"path"`
+}
+
 // UpdateVolumeMetadataJSONRequestBody defines body for UpdateVolumeMetadata for application/json ContentType.
 type UpdateVolumeMetadataJSONRequestBody = Metadata
 
@@ -278,6 +290,13 @@ type ClientInterface interface {
 	//
 	// Corresponds with PATCH /v2/volumecontent/{volumeID}/path (the `UpdateVolumeMetadata` operationId).
 	UpdateVolumeMetadata(ctx context.Context, volumeID VolumeID, params *UpdateVolumeMetadataParams, body UpdateVolumeMetadataJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// RenameVolumePath Rename or move a file or directory
+	//
+	// Moves to the exact newPath within the volume. Both parent directories must exist. The volume root cannot be moved or replaced. The target existence check and rename are not atomic.
+	//
+	// Corresponds with POST /v2/volumecontent/{volumeID}/rename (the `RenameVolumePath` operationId).
+	RenameVolumePath(ctx context.Context, volumeID VolumeID, params *RenameVolumePathParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 }
 
 // ListVolumeDirectory List directory entries
@@ -398,6 +417,23 @@ func (c *Client) UpdateVolumeMetadataWithBody(ctx context.Context, volumeID Volu
 // Corresponds with PATCH /v2/volumecontent/{volumeID}/path (the `UpdateVolumeMetadata` operationId).
 func (c *Client) UpdateVolumeMetadata(ctx context.Context, volumeID VolumeID, params *UpdateVolumeMetadataParams, body UpdateVolumeMetadataJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewUpdateVolumeMetadataRequest(c.Server, volumeID, params, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// RenameVolumePath Rename or move a file or directory
+//
+// Moves to the exact newPath within the volume. Both parent directories must exist. The volume root cannot be moved or replaced. The target existence check and rename are not atomic.
+//
+// Corresponds with POST /v2/volumecontent/{volumeID}/rename (the `RenameVolumePath` operationId).
+func (c *Client) RenameVolumePath(ctx context.Context, volumeID VolumeID, params *RenameVolumePathParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewRenameVolumePathRequest(c.Server, volumeID, params)
 	if err != nil {
 		return nil, err
 	}
@@ -930,6 +966,83 @@ func NewUpdateVolumeMetadataRequestWithBody(server string, volumeID VolumeID, pa
 	return req, nil
 }
 
+// NewRenameVolumePathRequest constructs an http.Request for the RenameVolumePath method
+func NewRenameVolumePathRequest(server string, volumeID VolumeID, params *RenameVolumePathParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "volumeID", volumeID, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: "uuid"})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/v2/volumecontent/%s/rename", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "newPath", params.NewPath, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if params.Force != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "force", *params.Force, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "path", params.Path, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
 	for _, r := range c.RequestEditors {
 		if err := r(ctx, req); err != nil {
@@ -1031,6 +1144,15 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with PATCH /v2/volumecontent/{volumeID}/path (the `UpdateVolumeMetadata` operationId).
 	UpdateVolumeMetadataWithResponse(ctx context.Context, volumeID VolumeID, params *UpdateVolumeMetadataParams, body UpdateVolumeMetadataJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateVolumeMetadataResponse, error)
+
+	// RenameVolumePathWithResponse Rename or move a file or directory
+	//
+	// Moves to the exact newPath within the volume. Both parent directories must exist. The volume root cannot be moved or replaced. The target existence check and rename are not atomic.
+	//
+	// Returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with POST /v2/volumecontent/{volumeID}/rename (the `RenameVolumePath` operationId).
+	RenameVolumePathWithResponse(ctx context.Context, volumeID VolumeID, params *RenameVolumePathParams, reqEditors ...RequestEditorFn) (*RenameVolumePathResponse, error)
 }
 
 type ListVolumeDirectoryResponse struct {
@@ -1355,6 +1477,54 @@ func (r UpdateVolumeMetadataResponse) ContentType() string {
 	return ""
 }
 
+type RenameVolumePathResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	// JSON200 the response for an HTTP 200 `application/json` response
+	JSON200 *Entry
+	// JSONDefault the response for an HTTP default `application/json` response
+	JSONDefault *Error
+}
+
+// GetJSON200 returns the response for an HTTP 200 `application/json` response
+func (r RenameVolumePathResponse) GetJSON200() *Entry {
+	return r.JSON200
+}
+
+// GetJSONDefault returns the response for an HTTP default `application/json` response
+func (r RenameVolumePathResponse) GetJSONDefault() *Error {
+	return r.JSONDefault
+}
+
+// GetBody returns the raw response body bytes
+func (r RenameVolumePathResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r RenameVolumePathResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r RenameVolumePathResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r RenameVolumePathResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 // ListVolumeDirectoryWithResponse List directory entries
 //
 // Returns a wrapper object for the known response body format(s).
@@ -1459,6 +1629,21 @@ func (c *ClientWithResponses) UpdateVolumeMetadataWithResponse(ctx context.Conte
 		return nil, err
 	}
 	return ParseUpdateVolumeMetadataResponse(rsp)
+}
+
+// RenameVolumePathWithResponse Rename or move a file or directory
+//
+// Moves to the exact newPath within the volume. Both parent directories must exist. The volume root cannot be moved or replaced. The target existence check and rename are not atomic.
+//
+// Returns a wrapper object for the known response body format(s).
+//
+// Corresponds with POST /v2/volumecontent/{volumeID}/rename (the `RenameVolumePath` operationId).
+func (c *ClientWithResponses) RenameVolumePathWithResponse(ctx context.Context, volumeID VolumeID, params *RenameVolumePathParams, reqEditors ...RequestEditorFn) (*RenameVolumePathResponse, error) {
+	rsp, err := c.RenameVolumePath(ctx, volumeID, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseRenameVolumePathResponse(rsp)
 }
 
 // ParseListVolumeDirectoryResponse parses an HTTP response from a ListVolumeDirectoryWithResponse call
@@ -1657,6 +1842,39 @@ func ParseUpdateVolumeMetadataResponse(rsp *http.Response) (*UpdateVolumeMetadat
 	}
 
 	response := &UpdateVolumeMetadataResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Entry
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseRenameVolumePathResponse parses an HTTP response from a RenameVolumePathWithResponse call
+func ParseRenameVolumePathResponse(rsp *http.Response) (*RenameVolumePathResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &RenameVolumePathResponse{
 		Body:         bodyBytes,
 		HTTPResponse: rsp,
 	}

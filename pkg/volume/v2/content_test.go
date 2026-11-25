@@ -214,6 +214,71 @@ func TestContentUpdateMetadata(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestContentRename(t *testing.T) {
+	for _, tc := range []struct {
+		name  string
+		force *bool
+	}{
+		{name: "default force"},
+		{name: "force false", force: new(false)},
+		{name: "force true", force: new(true)},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			const oldPath = "/old/a +&?.txt"
+			const newPath = "/dir/新文件 +&?.txt"
+			c := testContent(t, func(w http.ResponseWriter, r *http.Request) {
+				assert.Equal(t, "POST", r.Method)
+				assert.Equal(t, contentPrefix+"/rename", r.URL.Path)
+				q := r.URL.Query()
+				assert.Equal(t, oldPath, q.Get("path"))
+				assert.Equal(t, newPath, q.Get("newPath"))
+				if tc.force != nil {
+					assert.Equal(t, fmt.Sprint(*tc.force), q.Get("force"))
+				} else {
+					assert.False(t, q.Has("force"))
+				}
+				w.Header().Set("Content-Type", "application/json")
+				fmt.Fprint(w, strings.NewReplacer(
+					`"name":"a.txt"`, `"name":"新文件 +&?.txt"`,
+					`"path":"/dir/a.txt"`, `"path":"`+newPath+`"`,
+				).Replace(entryJSON))
+			})
+			e, err := c.VolumeContentV2(volumeID(t)).Rename(context.Background(), &contentapi.RenameVolumePathParams{
+				Path: oldPath, NewPath: newPath, Force: tc.force,
+			})
+			require.NoError(t, err)
+			require.NotNil(t, e)
+			assert.Equal(t, newPath, e.Path)
+			assert.Equal(t, "新文件 +&?.txt", e.Name)
+			assert.Equal(t, contentapi.EntryType("file"), e.Type)
+			assert.Equal(t, int64(5), e.Size)
+		})
+	}
+}
+
+func TestContentRenameError(t *testing.T) {
+	for _, status := range []int{http.StatusNotFound, http.StatusConflict} {
+		t.Run(http.StatusText(status), func(t *testing.T) {
+			c := testContent(t, func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(status)
+				fmt.Fprintf(w, `{"code":%d,"message":"rename failed"}`, status)
+			})
+			e, err := c.VolumeContentV2(volumeID(t)).Rename(context.Background(), &contentapi.RenameVolumePathParams{
+				Path: "/old", NewPath: "/new",
+			})
+			require.Error(t, err)
+			assert.Nil(t, e)
+			assert.Contains(t, err.Error(), "rename failed")
+			if status == http.StatusNotFound {
+				assert.ErrorIs(t, err, errdefs.ErrNotFound)
+			} else {
+				assert.ErrorIs(t, err, errdefs.ErrConflict)
+			}
+		})
+	}
+}
+
 func TestContentRemove(t *testing.T) {
 	c := testContent(t, func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "DELETE", r.Method)

@@ -148,6 +148,37 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
 paths:
+  /v2/volumecontent/{volumeID}/rename:
+    parameters:
+      - $ref: "#/components/parameters/VolumeID"
+      - $ref: "#/components/parameters/Path"
+    post:
+      operationId: RenameVolumePath
+      summary: Rename or move a file or directory
+      description: Moves to the exact newPath within the volume. Both parent directories must exist. The volume root cannot be moved or replaced. The target existence check and rename are not atomic.
+      parameters:
+        - in: query
+          name: newPath
+          required: true
+          description: Destination path within the volume.
+          schema:
+            type: string
+            minLength: 1
+        - in: query
+          name: force
+          description: Replace an existing file or empty directory. Nonempty target directories cannot be replaced.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Entry"
+        default:
+          $ref: "#/components/responses/Error"
   /v2/volumecontent/{volumeID}/file:
     parameters:
       - $ref: "#/components/parameters/VolumeID"

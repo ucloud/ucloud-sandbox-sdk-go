@@ -167,6 +167,21 @@ func (c *Content) UpdateMetadata(ctx context.Context, path string, md contentapi
 	return transport.Parsed(resp.JSON200, resp.HTTPResponse, resp.Body)
 }
 
+// Rename moves a file or directory from params.Path to the exact params.NewPath
+// within the volume and returns its metadata at the new path. params must be
+// non-nil. Both parent directories must exist; the volume root cannot be moved
+// or replaced. Set params.Force to replace an existing file or empty directory.
+// The target existence check and rename are not atomic.
+//
+// POST /v2/volumecontent/{volumeID}/rename
+func (c *Content) Rename(ctx context.Context, params *contentapi.RenameVolumePathParams) (*contentapi.Entry, error) {
+	resp, err := c.api.RenameVolumePathWithResponse(ctx, c.volumeID, params)
+	if err != nil {
+		return nil, err
+	}
+	return transport.Parsed(resp.JSON200, resp.HTTPResponse, resp.Body)
+}
+
 // Remove deletes the file or directory at path, recursively. The volume root
 // cannot be removed.
 //
