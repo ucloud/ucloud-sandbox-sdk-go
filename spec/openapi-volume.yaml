@@ -79,8 +79,13 @@ components:
       allOf:
         - $ref: '#/components/schemas/Volume'
         - type: object
-          required: [totalMountPointNum]
+          required: [usedSizeGiB, totalMountPointNum]
           properties:
+            usedSizeGiB:
+              type: integer
+              format: int64
+              minimum: 0
+              description: Used capacity in GiB.
             totalMountPointNum:
               type: integer
               description: Number of cloud mount points.
@@ -204,8 +209,21 @@ paths:
     delete:
       operationId: DeleteVolume
       summary: Delete a volume
+      description: Checks every page of running and paused sandboxes in the project for volume v2 metadata references before deleting. A failed mount check leaves the volume intact. The check is not atomic with concurrent sandbox creation.
       responses:
         '204':
           description: Deleted
+        '409':
+          description: A running or paused sandbox references this volume
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '502':
+          description: Upstream sandbox mount check or cloud deletion failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
         default:
           $ref: '#/components/responses/Error'

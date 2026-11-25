@@ -79,9 +79,12 @@ type VolumeDetail struct {
 	SizeGiB int64  `json:"sizeGiB"`
 
 	// TotalMountPointNum Number of cloud mount points.
-	TotalMountPointNum int                `json:"totalMountPointNum"`
-	UpdatedAt          time.Time          `json:"updatedAt"`
-	VolumeID           openapi_types.UUID `json:"volumeID"`
+	TotalMountPointNum int       `json:"totalMountPointNum"`
+	UpdatedAt          time.Time `json:"updatedAt"`
+
+	// UsedSizeGiB Used capacity in GiB.
+	UsedSizeGiB int64              `json:"usedSizeGiB"`
+	VolumeID    openapi_types.UUID `json:"volumeID"`
 }
 
 // VolumeList defines model for VolumeList.
@@ -205,6 +208,8 @@ type ClientInterface interface {
 
 	// DeleteVolume Delete a volume
 	//
+	// Checks every page of running and paused sandboxes in the project for volume v2 metadata references before deleting. A failed mount check leaves the volume intact. The check is not atomic with concurrent sandbox creation.
+	//
 	// Corresponds with DELETE /v2/volumes/{volumeID} (the `DeleteVolume` operationId).
 	DeleteVolume(ctx context.Context, volumeID VolumeID, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -278,6 +283,8 @@ func (c *Client) CreateVolume(ctx context.Context, params *CreateVolumeParams, b
 }
 
 // DeleteVolume Delete a volume
+//
+// Checks every page of running and paused sandboxes in the project for volume v2 metadata references before deleting. A failed mount check leaves the volume intact. The check is not atomic with concurrent sandbox creation.
 //
 // Corresponds with DELETE /v2/volumes/{volumeID} (the `DeleteVolume` operationId).
 func (c *Client) DeleteVolume(ctx context.Context, volumeID VolumeID, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -644,6 +651,8 @@ type ClientWithResponsesInterface interface {
 
 	// DeleteVolumeWithResponse Delete a volume
 	//
+	// Checks every page of running and paused sandboxes in the project for volume v2 metadata references before deleting. A failed mount check leaves the volume intact. The check is not atomic with concurrent sandbox creation.
+	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with DELETE /v2/volumes/{volumeID} (the `DeleteVolume` operationId).
@@ -777,8 +786,22 @@ func (r CreateVolumeResponse) ContentType() string {
 type DeleteVolumeResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
+	// JSON409 the response for an HTTP 409 `application/json` response
+	JSON409 *Error
+	// JSON502 the response for an HTTP 502 `application/json` response
+	JSON502 *Error
 	// JSONDefault the response for an HTTP default `application/json` response
 	JSONDefault *Error
+}
+
+// GetJSON409 returns the response for an HTTP 409 `application/json` response
+func (r DeleteVolumeResponse) GetJSON409() *Error {
+	return r.JSON409
+}
+
+// GetJSON502 returns the response for an HTTP 502 `application/json` response
+func (r DeleteVolumeResponse) GetJSON502() *Error {
+	return r.JSON502
 }
 
 // GetJSONDefault returns the response for an HTTP default `application/json` response
@@ -952,6 +975,8 @@ func (c *ClientWithResponses) CreateVolumeWithResponse(ctx context.Context, para
 
 // DeleteVolumeWithResponse Delete a volume
 //
+// Checks every page of running and paused sandboxes in the project for volume v2 metadata references before deleting. A failed mount check leaves the volume intact. The check is not atomic with concurrent sandbox creation.
+//
 // Returns a wrapper object for the known response body format(s).
 //
 // Corresponds with DELETE /v2/volumes/{volumeID} (the `DeleteVolume` operationId).
@@ -1091,6 +1116,20 @@ func ParseDeleteVolumeResponse(rsp *http.Response) (*DeleteVolumeResponse, error
 	switch {
 	case rsp.StatusCode == 204:
 		break // No content-type
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 502:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON502 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
