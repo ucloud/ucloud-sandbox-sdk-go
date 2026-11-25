@@ -120,6 +120,12 @@ type CreateVolumeDirectoryParams struct {
 type ReadVolumeFileParams struct {
 	// Path Path within the volume; use / for the root.
 	Path Path `form:"path" json:"path"`
+
+	// Range Byte ranges to download.
+	Range *string `json:"Range,omitempty"`
+
+	// IfRange Download the full file if the validator does not match.
+	IfRange *string `json:"If-Range,omitempty"`
 }
 
 // WriteVolumeFileParams defines parameters for WriteVolumeFile.
@@ -670,6 +676,32 @@ func NewReadVolumeFileRequest(server string, volumeID VolumeID, params *ReadVolu
 	req, err := http.NewRequest(http.MethodGet, queryURL.String(), nil)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+
+		if params.Range != nil {
+			var headerParam0 string
+
+			headerParam0, err = runtime.StyleParamWithOptions("simple", false, "Range", *params.Range, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("Range", headerParam0)
+		}
+
+		if params.IfRange != nil {
+			var headerParam1 string
+
+			headerParam1, err = runtime.StyleParamWithOptions("simple", false, "If-Range", *params.IfRange, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationHeader, Type: "string", Format: ""})
+			if err != nil {
+				return nil, err
+			}
+
+			req.Header.Set("If-Range", headerParam1)
+		}
+
 	}
 
 	return req, nil
@@ -1251,11 +1283,35 @@ func (r CreateVolumeDirectoryResponse) ContentType() string {
 	return ""
 }
 
+// ReadVolumeFileResponse200Headers the declared response headers of an HTTP 200 response for ReadVolumeFile
+type ReadVolumeFileResponse200Headers struct {
+	AcceptRanges *string
+	LastModified *string
+}
+
+// ReadVolumeFileResponse206Headers the declared response headers of an HTTP 206 response for ReadVolumeFile
+type ReadVolumeFileResponse206Headers struct {
+	AcceptRanges  *string
+	ContentLength *int64
+	ContentRange  *string
+}
+
+// ReadVolumeFileResponse416Headers the declared response headers of an HTTP 416 response for ReadVolumeFile
+type ReadVolumeFileResponse416Headers struct {
+	ContentRange *string
+}
+
 type ReadVolumeFileResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSONDefault the response for an HTTP default `application/json` response
 	JSONDefault *Error
+	// Headers200 the parsed response headers for an HTTP 200 response
+	Headers200 *ReadVolumeFileResponse200Headers
+	// Headers206 the parsed response headers for an HTTP 206 response
+	Headers206 *ReadVolumeFileResponse206Headers
+	// Headers416 the parsed response headers for an HTTP 416 response
+	Headers416 *ReadVolumeFileResponse416Headers
 }
 
 // GetJSONDefault returns the response for an HTTP default `application/json` response
@@ -1733,6 +1789,60 @@ func ParseReadVolumeFileResponse(rsp *http.Response) (*ReadVolumeFileResponse, e
 		}
 		response.JSONDefault = &dest
 
+	}
+
+	switch {
+	case rsp.StatusCode == 200:
+		var headers ReadVolumeFileResponse200Headers
+		if values := rsp.Header.Values("Accept-Ranges"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Accept-Ranges", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.AcceptRanges = &value
+		}
+		if values := rsp.Header.Values("Last-Modified"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Last-Modified", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.LastModified = &value
+		}
+		response.Headers200 = &headers
+	case rsp.StatusCode == 206:
+		var headers ReadVolumeFileResponse206Headers
+		if values := rsp.Header.Values("Accept-Ranges"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Accept-Ranges", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.AcceptRanges = &value
+		}
+		if values := rsp.Header.Values("Content-Length"); len(values) > 0 {
+			var value int64
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Length", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "integer", Format: "int64"}); err != nil {
+				return nil, err
+			}
+			headers.ContentLength = &value
+		}
+		if values := rsp.Header.Values("Content-Range"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Range", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentRange = &value
+		}
+		response.Headers206 = &headers
+	case rsp.StatusCode == 416:
+		var headers ReadVolumeFileResponse416Headers
+		if values := rsp.Header.Values("Content-Range"); len(values) > 0 {
+			var value string
+			if err := runtime.BindStyledParameterWithOptions("simple", "Content-Range", values[0], &value, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationHeader, Explode: false, Required: false, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			}
+			headers.ContentRange = &value
+		}
+		response.Headers416 = &headers
 	}
 
 	return response, nil

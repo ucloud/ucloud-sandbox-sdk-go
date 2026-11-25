@@ -186,14 +186,71 @@ paths:
     get:
       operationId: ReadVolumeFile
       summary: Download a file
+      parameters:
+        - in: header
+          name: Range
+          description: Byte ranges to download.
+          schema:
+            type: string
+            example: bytes=1000-1999
+        - in: header
+          name: If-Range
+          description: Download the full file if the validator does not match.
+          schema:
+            type: string
       responses:
         "200":
           description: Successful
+          headers:
+            Accept-Ranges:
+              schema:
+                type: string
+                enum: [bytes]
+            Last-Modified:
+              schema:
+                type: string
           content:
             application/octet-stream:
               schema:
                 type: string
                 format: binary
+        "206":
+          description: Partial content
+          headers:
+            Accept-Ranges:
+              schema:
+                type: string
+                enum: [bytes]
+            Content-Range:
+              description: Returned for a single byte range.
+              schema:
+                type: string
+                example: bytes 1000-1999/4096
+            Content-Length:
+              schema:
+                type: integer
+                format: int64
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            multipart/byteranges:
+              schema:
+                type: string
+                format: binary
+        "416":
+          description: Invalid or unsatisfiable range
+          headers:
+            Content-Range:
+              description: File size when no requested range overlaps the file.
+              schema:
+                type: string
+                example: bytes */4096
+          content:
+            text/plain:
+              schema:
+                type: string
         default:
           $ref: "#/components/responses/Error"
     put:
