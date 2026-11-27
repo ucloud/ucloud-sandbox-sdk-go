@@ -1,5 +1,8 @@
 // Package content reads and writes files in a volume through the independent
 // volumecontent.{domain} service.
+// Paths accept relative and absolute forms within the volume: "file.txt" and
+// "/file.txt" refer to the same entry, while "." and "/" refer to the volume
+// root. Responses contain normalized relative paths.
 package content
 
 import (

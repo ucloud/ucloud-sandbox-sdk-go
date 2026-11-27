@@ -94,6 +94,10 @@ through the environment instead.
 | [`pkg/transport`](pkg/transport) | HTTP plumbing. Rarely used directly. |
 | [`pkg/api`](pkg/api), [`pkg/envd`](pkg/envd) | Generated clients. See below. |
 
+Volume content paths accept both relative and absolute forms within the volume:
+`data/input.txt` and `/data/input.txt` refer to the same entry. `.` and `/`
+refer to the volume root. Responses return normalized relative paths.
+
 ### Errors
 
 Every failure, whether it came over HTTP or over envd's RPC, lands on the same

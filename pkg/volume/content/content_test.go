@@ -47,13 +47,13 @@ func TestWriteFileUsesConfiguredIPVolumeContentHostAndGeneratedParams(t *testing
 	require.NoError(t, err)
 
 	entry, err := volumeContent.WriteFile(context.Background(), &contentapi.WriteVolumeFileParams{
-		Path: "note.txt",
+		Path: "/note.txt",
 	}, strings.NewReader("hello"))
 	require.NoError(t, err)
 	require.Equal(t, "note.txt", entry.Path)
 	require.Equal(t, "10.0.0.5:8081", got.URL.Host)
 	require.Equal(t, "/"+volumeID+"/files", got.URL.Path)
-	require.Equal(t, "note.txt", got.URL.Query().Get("path"))
+	require.Equal(t, "/note.txt", got.URL.Query().Get("path"))
 	require.Equal(t, "test-key", got.Header.Get("X-API-Key"))
 	require.Equal(t, "application/octet-stream", got.Header.Get("Content-Type"))
 	require.Equal(t, "hello", gotBody)

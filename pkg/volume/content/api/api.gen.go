@@ -42,7 +42,7 @@ func (e EntryInfoType) Valid() bool {
 	}
 }
 
-// ContentPath Path relative to the volume root; "." denotes the root. Absolute paths, NUL bytes, ".." components, and symlinks outside the volume are not allowed.
+// ContentPath Path within the volume, accepting both relative and absolute forms: "file.txt" and "/file.txt" refer to the same entry. "." and "/" denote the volume root. Responses use normalized relative paths. NUL bytes, ".." components, and symlinks outside the volume are not allowed.
 //
 // Example: data/input.txt
 type ContentPath = string
@@ -58,7 +58,7 @@ type CreateDirectory struct {
 	// Mode Optional directory mode; defaults to decimal 511 (octal 0777).
 	Mode *Mode `json:"mode,omitempty"`
 
-	// Path Path relative to the volume root; "." denotes the root. Absolute paths, NUL bytes, ".." components, and symlinks outside the volume are not allowed.
+	// Path Path within the volume, accepting both relative and absolute forms: "file.txt" and "/file.txt" refer to the same entry. "." and "/" denote the volume root. Responses use normalized relative paths. NUL bytes, ".." components, and symlinks outside the volume are not allowed.
 	//
 	// Example: data/input.txt
 	Path ContentPath `json:"path"`
@@ -85,7 +85,7 @@ type EntryInfo struct {
 	// Name Entry basename; "." denotes the volume root.
 	Name string `json:"name"`
 
-	// Path Path relative to the volume root; "." denotes the root. Absolute paths, NUL bytes, ".." components, and symlinks outside the volume are not allowed.
+	// Path Path within the volume, accepting both relative and absolute forms: "file.txt" and "/file.txt" refer to the same entry. "." and "/" denote the volume root. Responses use normalized relative paths. NUL bytes, ".." components, and symlinks outside the volume are not allowed.
 	//
 	// Example: data/input.txt
 	Path ContentPath `json:"path"`
@@ -121,12 +121,12 @@ type Mode = int64
 
 // RenamePath Example: {"destinationPath":"archive/input.txt","sourcePath":"data/input.txt"}
 type RenamePath struct {
-	// DestinationPath Path relative to the volume root; "." denotes the root. Absolute paths, NUL bytes, ".." components, and symlinks outside the volume are not allowed.
+	// DestinationPath Path within the volume, accepting both relative and absolute forms: "file.txt" and "/file.txt" refer to the same entry. "." and "/" denote the volume root. Responses use normalized relative paths. NUL bytes, ".." components, and symlinks outside the volume are not allowed.
 	//
 	// Example: data/input.txt
 	DestinationPath ContentPath `json:"destinationPath"`
 
-	// SourcePath Path relative to the volume root; "." denotes the root. Absolute paths, NUL bytes, ".." components, and symlinks outside the volume are not allowed.
+	// SourcePath Path within the volume, accepting both relative and absolute forms: "file.txt" and "/file.txt" refer to the same entry. "." and "/" denote the volume root. Responses use normalized relative paths. NUL bytes, ".." components, and symlinks outside the volume are not allowed.
 	//
 	// Example: data/input.txt
 	SourcePath ContentPath `json:"sourcePath"`
@@ -143,7 +143,7 @@ type UpdatePath struct {
 	// Mode POSIX permission bits as a decimal integer (for example, 420 is octal 0644).
 	Mode *Mode `json:"mode,omitempty"`
 
-	// Path Path relative to the volume root; "." denotes the root. Absolute paths, NUL bytes, ".." components, and symlinks outside the volume are not allowed.
+	// Path Path within the volume, accepting both relative and absolute forms: "file.txt" and "/file.txt" refer to the same entry. "." and "/" denote the volume root. Responses use normalized relative paths. NUL bytes, ".." components, and symlinks outside the volume are not allowed.
 	//
 	// Example: data/input.txt
 	Path ContentPath `json:"path"`
@@ -165,7 +165,7 @@ type UpdatePath2 = interface{}
 // Depth defines model for Depth.
 type Depth = int32
 
-// DirectoryPath Path relative to the volume root; "." denotes the root. Absolute paths, NUL bytes, ".." components, and symlinks outside the volume are not allowed.
+// DirectoryPath Path within the volume, accepting both relative and absolute forms: "file.txt" and "/file.txt" refer to the same entry. "." and "/" denote the volume root. Responses use normalized relative paths. NUL bytes, ".." components, and symlinks outside the volume are not allowed.
 //
 // Example: data/input.txt
 type DirectoryPath = ContentPath
@@ -568,7 +568,7 @@ type ClientInterface interface {
 
 	// StatVolumePath Inspect a volume path
 	//
-	// Get file, directory, or symlink metadata. Use path="." for the volume root.
+	// Get file, directory, or symlink metadata. Use path="." or path="/" for the volume root.
 	//
 	// Corresponds with GET /{volumeID}/paths (the `StatVolumePath` operationId).
 	StatVolumePath(ctx context.Context, volumeID VolumeID, params *StatVolumePathParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -720,7 +720,7 @@ func (c *Client) DeleteVolumePath(ctx context.Context, volumeID VolumeID, params
 
 // StatVolumePath Inspect a volume path
 //
-// Get file, directory, or symlink metadata. Use path="." for the volume root.
+// Get file, directory, or symlink metadata. Use path="." or path="/" for the volume root.
 //
 // Corresponds with GET /{volumeID}/paths (the `StatVolumePath` operationId).
 func (c *Client) StatVolumePath(ctx context.Context, volumeID VolumeID, params *StatVolumePathParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -1453,7 +1453,7 @@ type ClientWithResponsesInterface interface {
 
 	// StatVolumePathWithResponse Inspect a volume path
 	//
-	// Get file, directory, or symlink metadata. Use path="." for the volume root.
+	// Get file, directory, or symlink metadata. Use path="." or path="/" for the volume root.
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
@@ -2371,7 +2371,7 @@ func (c *ClientWithResponses) DeleteVolumePathWithResponse(ctx context.Context, 
 
 // StatVolumePathWithResponse Inspect a volume path
 //
-// Get file, directory, or symlink metadata. Use path="." for the volume root.
+// Get file, directory, or symlink metadata. Use path="." or path="/" for the volume root.
 //
 // Returns a wrapper object for the known response body format(s).
 //
