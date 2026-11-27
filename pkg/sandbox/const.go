@@ -11,12 +11,13 @@ import (
 const (
 	ManageByMetadataKey = "manageby.sandbox.ucloudai.com"
 
-	ManageByUnknown  = "unknown"
-	ManageByDefault  = "ucloud-sandbox-sdk-go"
-	ManageBySite     = "site"
-	ManageByCodeBox  = "codebox"
-	ManageByRagView  = "ragview"
-	ManageBySkillLab = "skill-lab"
+	ManageByUnknown      = "unknown"
+	ManageByDefault      = "ucloud-sandbox-sdk-go"
+	ManageBySite         = "site"
+	ManageByCodeBox      = "codebox"
+	ManageByRagView      = "ragview"
+	ManageBySkillLab     = "skill-lab"
+	ManageBySandboxBench = "sandbox-bench"
 )
 
 // AllTraffic matches every address, for NetworkConfig's allow and deny lists.
@@ -30,7 +31,7 @@ func ParseManageBy(metadataPtr *api.SandboxMetadata) string {
 	}
 	metadata := *metadataPtr
 	switch value := metadata[ManageByMetadataKey]; value {
-	case ManageByDefault, ManageBySite, ManageByCodeBox, ManageByRagView, ManageBySkillLab:
+	case ManageByDefault, ManageBySite, ManageByCodeBox, ManageByRagView, ManageBySkillLab, ManageBySandboxBench:
 		return value
 	default:
 		return ManageByUnknown
