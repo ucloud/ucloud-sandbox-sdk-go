@@ -3,8 +3,8 @@ package volume
 import (
 	"context"
 
-	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/api"
 )
 
 // List returns every volume the team owns.
@@ -14,7 +14,7 @@ import (
 //
 // GET /volumes
 func (s *Service) List(ctx context.Context) ([]api.Volume, error) {
-	resp, err := s.t.API().GetVolumesWithResponse(ctx)
+	resp, err := s.api.GetVolumesWithResponse(ctx)
 	if err != nil {
 		return nil, err
 	}

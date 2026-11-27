@@ -11,6 +11,7 @@ import (
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/client"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/sandbox/commands"
+	volumeapi "github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/api"
 )
 
 func main() {
@@ -21,7 +22,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	vol, err := c.Volumes().Create(ctx, "example-data")
+	vol, err := c.Volumes().Create(ctx, volumeapi.NewVolume{Name: "example-data"})
 	if err != nil {
 		log.Fatal(err)
 	}

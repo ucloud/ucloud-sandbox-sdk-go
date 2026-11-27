@@ -113,6 +113,12 @@ func (c *Client) authorize(_ context.Context, req *http.Request) error {
 	return nil
 }
 
+// Authorize applies the configured headers and API key to a request for an
+// additional SDK API, such as volume management or volume content.
+func (c *Client) Authorize(ctx context.Context, req *http.Request) error {
+	return c.authorize(ctx, req)
+}
+
 // API returns the generated control-plane client. Domain packages call it, and
 // it is exposed so that endpoints this SDK does not wrap — teams, API keys,
 // admin — remain reachable.
@@ -133,6 +139,11 @@ func (c *Client) Domain() string { return c.cfg.domain }
 
 // APIURL returns the resolved control-plane base URL, without a trailing slash.
 func (c *Client) APIURL() string { return c.cfg.apiURL }
+
+// VolumeContentURL returns the base URL of the volume content service.
+func (c *Client) VolumeContentURL() string {
+	return c.cfg.volumeContentURL
+}
 
 // Headers returns the extra headers added to every request. The returned map
 // must not be modified.

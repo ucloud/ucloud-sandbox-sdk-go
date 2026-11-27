@@ -1,0 +1,747 @@
+openapi: 3.0.0
+
+info:
+  version: 0.1.0
+  title: UCloud Sandbox Volume Content API
+  description: |
+    Extends the native E2B volume content capabilities with file and directory operations,
+    including rename and byte-range downloads. Requests require an API key or a system key.
+
+servers:
+  - url: https://volumecontent.sandbox.example.com
+    description: Volume content service.
+
+security:
+  - ApiKeyAuth: []
+  - SystemKeyAuth: []
+
+tags:
+  - name: volume-content
+    description: File and directory operations.
+
+paths:
+  /{volumeID}/directories:
+    parameters:
+      - $ref: "#/components/parameters/volumeID"
+
+    get:
+      operationId: ListVolumeDirectory
+      summary: List a volume directory
+      description: List directory entries with optional recursion. Directory symlinks are not followed.
+      tags: [volume-content]
+      parameters:
+        - $ref: "#/components/parameters/DirectoryPath"
+        - $ref: "#/components/parameters/Depth"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Directory entries; an empty directory returns an empty array.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EntryInfo"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "413":
+          $ref: "#/components/responses/413"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+
+    post:
+      operationId: CreateVolumeDirectory
+      summary: Create a volume directory
+      description: Create a directory, optionally including missing parents.
+      tags: [volume-content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateDirectory"
+      responses:
+        "200":
+          description: Directory entry.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryInfo"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "402":
+          $ref: "#/components/responses/402"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "409":
+          $ref: "#/components/responses/409"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+        "507":
+          $ref: "#/components/responses/507"
+
+  /{volumeID}/files:
+    parameters:
+      - $ref: "#/components/parameters/volumeID"
+      - $ref: "#/components/parameters/ContentPath"
+
+    get:
+      operationId: ReadVolumeFile
+      summary: Download a volume file
+      description: >-
+        Download a file as application/octet-stream. Supports standard HTTP byte-range requests.
+      tags: [volume-content]
+      parameters:
+        - $ref: "#/components/parameters/Range"
+        - $ref: "#/components/parameters/IfRange"
+      responses:
+        "200":
+          description: Full file contents when Range is absent or ignored.
+          headers:
+            Accept-Ranges:
+              $ref: "#/components/headers/AcceptRanges"
+            Content-Length:
+              $ref: "#/components/headers/ContentLength"
+            Last-Modified:
+              $ref: "#/components/headers/LastModified"
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        "206":
+          description: >-
+            Requested file bytes. Single ranges include a Content-Range response header.
+            Multiple ranges use multipart/byteranges with a boundary and Content-Range
+            in each part, without a top-level Content-Range header.
+          headers:
+            Accept-Ranges:
+              $ref: "#/components/headers/AcceptRanges"
+            Content-Range:
+              $ref: "#/components/headers/ContentRange"
+            Content-Length:
+              $ref: "#/components/headers/ContentLength"
+            Last-Modified:
+              $ref: "#/components/headers/LastModified"
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+            multipart/byteranges:
+              schema:
+                type: string
+                format: binary
+                description: Multipart body with Content-Range in each part.
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "416":
+          $ref: "#/components/responses/416"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+
+    put:
+      operationId: WriteVolumeFile
+      summary: Upload a volume file
+      description: >-
+        Upload file bytes, including empty files. Failed uploads leave an existing file unchanged. Replacing
+        a file may require additional free space. Directories and symlinks cannot be overwritten.
+      tags: [volume-content]
+      parameters:
+        - $ref: "#/components/parameters/Force"
+        - $ref: "#/components/parameters/Mode"
+        - $ref: "#/components/parameters/UID"
+        - $ref: "#/components/parameters/GID"
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        "200":
+          description: Entry for the completely written file.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryInfo"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "402":
+          $ref: "#/components/responses/402"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "409":
+          $ref: "#/components/responses/409"
+        "413":
+          $ref: "#/components/responses/413"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+        "507":
+          $ref: "#/components/responses/507"
+
+  /{volumeID}/paths:
+    parameters:
+      - $ref: "#/components/parameters/volumeID"
+
+    get:
+      operationId: StatVolumePath
+      summary: Inspect a volume path
+      description: Get file, directory, or symlink metadata. Use path="." for the volume root.
+      tags: [volume-content]
+      parameters:
+        - $ref: "#/components/parameters/ContentPath"
+        - $ref: "#/components/parameters/FollowSymlinks"
+      responses:
+        "200":
+          description: Path metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryInfo"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+
+    patch:
+      operationId: UpdateVolumePath
+      summary: Update volume path metadata
+      description: Update at least one of mode, uid, or gid on an existing entry.
+      tags: [volume-content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdatePath"
+      responses:
+        "200":
+          description: Updated path metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryInfo"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "402":
+          $ref: "#/components/responses/402"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "409":
+          $ref: "#/components/responses/409"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+        "507":
+          $ref: "#/components/responses/507"
+
+    delete:
+      operationId: DeleteVolumePath
+      summary: Delete a volume path
+      description: >-
+        Delete a file, symlink, or directory recursively. Symlink targets are preserved. The volume root
+        cannot be deleted through this endpoint.
+      tags: [volume-content]
+      parameters:
+        - $ref: "#/components/parameters/ContentPath"
+      responses:
+        "204":
+          description: Path deleted. Usage statistics may take time to update.
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "402":
+          $ref: "#/components/responses/402"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+
+  /{volumeID}/paths/rename:
+    parameters:
+      - $ref: "#/components/parameters/volumeID"
+
+    post:
+      operationId: RenameVolumePath
+      summary: Rename a volume path
+      description: >-
+        Rename or move a file, directory, or symlink within the volume. The destination parent must
+        exist, and the destination must not already exist. The volume root cannot be renamed or replaced.
+      tags: [volume-content]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RenamePath"
+      responses:
+        "200":
+          description: Renamed path metadata.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EntryInfo"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "402":
+          $ref: "#/components/responses/402"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "409":
+          $ref: "#/components/responses/409"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: User API key.
+
+    SystemKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: System authentication key for trusted service requests.
+
+  headers:
+    AcceptRanges:
+      description: Supported range unit.
+      schema:
+        type: string
+        enum: [bytes]
+
+    ContentRange:
+      description: Returned byte range and total file size. Present only for single-range responses.
+      schema:
+        type: string
+        example: bytes 0-1023/4096
+
+    ContentLength:
+      description: Number of bytes in the response body.
+      schema:
+        type: integer
+        format: int64
+        minimum: 0
+
+    LastModified:
+      description: File modification time in HTTP-date format.
+      schema:
+        type: string
+        example: "Wed, 25 Nov 2026 08:00:00 GMT"
+
+  parameters:
+    volumeID:
+      name: volumeID
+      in: path
+      required: true
+      description: UUID of a volume owned by the authenticated team.
+      schema:
+        type: string
+        format: uuid
+
+    ContentPath:
+      name: path
+      in: query
+      required: true
+      schema:
+        $ref: "#/components/schemas/ContentPath"
+
+    Range:
+      name: Range
+      in: header
+      required: false
+      description: >-
+        HTTP byte ranges, including bytes=0-1023, bytes=1024-, bytes=-512,
+        and multiple ranges such as bytes=0-99,200-299.
+      schema:
+        type: string
+        example: bytes=0-1023
+
+    IfRange:
+      name: If-Range
+      in: header
+      required: false
+      description: Last-Modified value from a previous download. If the file has changed, return the full file.
+      schema:
+        type: string
+        example: "Wed, 25 Nov 2026 08:00:00 GMT"
+
+    DirectoryPath:
+      name: path
+      in: query
+      required: false
+      description: Directory to list; omitted means the volume root.
+      schema:
+        allOf:
+          - $ref: "#/components/schemas/ContentPath"
+        default: .
+
+    Depth:
+      name: depth
+      in: query
+      required: false
+      description: 1 lists immediate children. Higher values recurse without following directory symlinks.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 10
+        default: 1
+
+    Limit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of entries to return. Exceeding this limit returns 413.
+      schema:
+        type: integer
+        format: int32
+        minimum: 1
+        maximum: 10000
+        default: 1000
+
+    Force:
+      name: force
+      in: query
+      required: false
+      description: >-
+        When false, an existing target returns 409 and missing parents return 404. When true, create missing
+        parents and replace an existing regular file. A directory is never replaced.
+      schema:
+        type: boolean
+        default: false
+
+    Mode:
+      name: mode
+      in: query
+      required: false
+      description: File mode after a successful upload; defaults to decimal 438 (octal 0666).
+      schema:
+        $ref: "#/components/schemas/Mode"
+
+    UID:
+      name: uid
+      in: query
+      required: false
+      description: Owner after a successful upload; defaults to 9090.
+      schema:
+        $ref: "#/components/schemas/UID"
+
+    GID:
+      name: gid
+      in: query
+      required: false
+      description: Group after a successful upload; defaults to 9090.
+      schema:
+        $ref: "#/components/schemas/GID"
+
+    FollowSymlinks:
+      name: followSymlinks
+      in: query
+      required: false
+      description: Inspect the symlink target instead of the link itself. Targets must be within the volume.
+      schema:
+        type: boolean
+        default: false
+
+  responses:
+    "400":
+      description: Invalid request parameters.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "401":
+      description: Missing or invalid API key or system key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "402":
+      description: Outstanding payment prevents this operation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "403":
+      description: Volume access is disabled for the account, or the operation is not permitted.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "404":
+      description: Volume or path not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "409":
+      description: Target path already exists or conflicts with the requested operation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "413":
+      description: Request or directory listing exceeds the allowed limit.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "416":
+      description: The requested byte range cannot be satisfied.
+      headers:
+        Accept-Ranges:
+          $ref: "#/components/headers/AcceptRanges"
+        Content-Range:
+          description: Unsatisfied range in the form bytes */file-size.
+          schema:
+            type: string
+            example: bytes */1024
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "503":
+      description: Service temporarily unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "507":
+      description: Insufficient storage space.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+          description: HTTP status code.
+        message:
+          type: string
+          description: Human-readable error message.
+
+    ContentPath:
+      type: string
+      minLength: 1
+      description: >-
+        Path relative to the volume root; "." denotes the root. Absolute paths, NUL bytes, ".." components,
+        and symlinks outside the volume are not allowed.
+      example: data/input.txt
+
+    Mode:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 4095
+      description: POSIX permission bits as a decimal integer (for example, 420 is octal 0644).
+
+    UID:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 4294967294
+      description: Numeric POSIX user ID. Omitted on update means unchanged.
+
+    GID:
+      type: integer
+      format: int64
+      minimum: 0
+      maximum: 4294967294
+      description: Numeric POSIX group ID. Omitted on update means unchanged.
+
+    EntryInfo:
+      type: object
+      required:
+        - name
+        - type
+        - path
+        - size
+        - mode
+        - uid
+        - gid
+        - modifiedTime
+      properties:
+        name:
+          type: string
+          description: Entry basename; "." denotes the volume root.
+        type:
+          type: string
+          enum:
+            - file
+            - directory
+            - symlink
+            - other
+        path:
+          $ref: "#/components/schemas/ContentPath"
+        size:
+          type: integer
+          format: int64
+          minimum: 0
+          description: Entry size in bytes. Directory size excludes its contents.
+        mode:
+          $ref: "#/components/schemas/Mode"
+        uid:
+          $ref: "#/components/schemas/UID"
+        gid:
+          $ref: "#/components/schemas/GID"
+        modifiedTime:
+          type: string
+          format: date-time
+        createdTime:
+          type: string
+          format: date-time
+          description: Creation time, only when supported by the filesystem.
+        accessedTime:
+          type: string
+          format: date-time
+          description: Last access time, when available.
+        symlinkTarget:
+          type: string
+          description: Symlink target when inspecting the link itself.
+
+    CreateDirectory:
+      type: object
+      additionalProperties: false
+      required:
+        - path
+      properties:
+        path:
+          $ref: "#/components/schemas/ContentPath"
+        createParents:
+          type: boolean
+          default: false
+          description: >-
+            Create missing ancestors. An existing target directory succeeds without changing its metadata
+            when true; an existing non-directory always returns 409.
+        mode:
+          allOf:
+            - $ref: "#/components/schemas/Mode"
+          description: Optional directory mode; defaults to decimal 511 (octal 0777).
+        uid:
+          allOf:
+            - $ref: "#/components/schemas/UID"
+          description: Owner; defaults to 9090 for a newly created directory.
+        gid:
+          allOf:
+            - $ref: "#/components/schemas/GID"
+          description: Group; defaults to 9090 for a newly created directory.
+
+    UpdatePath:
+      type: object
+      additionalProperties: false
+      required:
+        - path
+      anyOf:
+        - required:
+            - mode
+        - required:
+            - uid
+        - required:
+            - gid
+      description: Specify at least one of mode, uid, or gid. Omitted fields remain unchanged.
+      properties:
+        path:
+          $ref: "#/components/schemas/ContentPath"
+        mode:
+          $ref: "#/components/schemas/Mode"
+        uid:
+          $ref: "#/components/schemas/UID"
+        gid:
+          $ref: "#/components/schemas/GID"
+
+    RenamePath:
+      type: object
+      additionalProperties: false
+      required:
+        - sourcePath
+        - destinationPath
+      properties:
+        sourcePath:
+          $ref: "#/components/schemas/ContentPath"
+        destinationPath:
+          $ref: "#/components/schemas/ContentPath"
+      example:
+        sourcePath: data/input.txt
+        destinationPath: archive/input.txt

@@ -46,11 +46,15 @@ func New(opts Options) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	volumes, err := volume.NewService(t)
+	if err != nil {
+		return nil, err
+	}
 	return &Client{
 		t:         t,
 		sandboxes: sandbox.NewService(t),
 		templates: template.NewService(t),
-		volumes:   volume.NewService(t),
+		volumes:   volumes,
 		secrets:   secret.NewService(t),
 	}, nil
 }

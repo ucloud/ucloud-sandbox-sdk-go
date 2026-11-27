@@ -3,15 +3,15 @@ package volume
 import (
 	"context"
 
-	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/api"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/api"
 )
 
-// Create makes a new volume and returns a handle carrying its content token.
+// Create makes a new volume from the generated NewVolume request.
 //
 // POST /volumes
-func (s *Service) Create(ctx context.Context, name string) (*api.VolumeAndToken, error) {
-	resp, err := s.t.API().PostVolumesWithResponse(ctx, api.PostVolumesJSONRequestBody{Name: name})
+func (s *Service) Create(ctx context.Context, req api.NewVolume) (*api.Volume, error) {
+	resp, err := s.api.PostVolumesWithResponse(ctx, req)
 	if err != nil {
 		return nil, err
 	}

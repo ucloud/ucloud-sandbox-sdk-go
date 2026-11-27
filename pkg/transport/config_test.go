@@ -15,7 +15,7 @@ func clearEnv(t *testing.T) {
 	t.Helper()
 	for _, name := range []string{
 		EnvAPIKey, EnvRegion, EnvDomain, EnvAPIURL,
-		EnvSandboxURL, EnvDebug, EnvInsecureHTTP,
+		EnvVolumeContentURL, EnvSandboxURL, EnvDebug, EnvInsecureHTTP,
 	} {
 		t.Setenv(name, "")
 	}
@@ -132,6 +132,50 @@ func TestResolveEndpoints(t *testing.T) {
 			assert.Equal(t, tt.wantRegion, got.region, "region")
 			assert.Equal(t, tt.wantDomain, got.domain, "domain")
 			assert.Equal(t, tt.wantAPIURL, got.apiURL, "apiURL")
+		})
+	}
+}
+
+func TestResolveVolumeContentURL(t *testing.T) {
+	tests := []struct {
+		name string
+		env  map[string]string
+		cfg  Config
+		want string
+	}{
+		{
+			name: "default",
+			cfg:  Config{APIKey: "k"},
+			want: "https://volumecontent.cn-wlcb.sandbox.ucloudai.com",
+		},
+		{
+			name: "default follows configured domain and scheme",
+			cfg:  Config{APIKey: "k", Domain: "sandbox.internal.corp", InsecureHTTP: true},
+			want: "http://volumecontent.sandbox.internal.corp",
+		},
+		{
+			name: "environment URL supports IP endpoints and trims trailing slash",
+			env:  map[string]string{EnvVolumeContentURL: "http://10.0.0.5:8081/"},
+			cfg:  Config{APIKey: "k"},
+			want: "http://10.0.0.5:8081",
+		},
+		{
+			name: "config URL takes precedence over environment",
+			env:  map[string]string{EnvVolumeContentURL: "http://from-env"},
+			cfg:  Config{APIKey: "k", VolumeContentURL: "http://10.0.0.8:8081/"},
+			want: "http://10.0.0.8:8081",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			clearEnv(t)
+			for k, v := range tt.env {
+				t.Setenv(k, v)
+			}
+			got, err := tt.cfg.resolve()
+			require.NoError(t, err)
+			assert.Equal(t, tt.want, got.volumeContentURL)
 		})
 	}
 }

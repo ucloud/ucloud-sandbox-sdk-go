@@ -61,18 +61,24 @@ it falls back to an environment variable, then to a default:
 | `Region` | `UCLOUD_SANDBOX_REGION` | `cn-wlcb` |
 | `Domain` | `UCLOUD_SANDBOX_DOMAIN` | `{region}.sandbox.ucloudai.com` |
 | `APIURL` | `UCLOUD_SANDBOX_API_URL` | `https://api.{domain}` |
+| `VolumeContentURL` | `UCLOUD_SANDBOX_VOLUME_CONTENT_URL` | `https://volumecontent.{domain}` |
 | `InsecureHTTP` | `UCLOUD_SANDBOX_INSECURE_HTTP` | `false` |
 
 `Region` expands to a domain; `Domain` overrides it; `APIURL` overrides both, so
-a private deployment can be named by address:
+a private deployment can be named by address. `VolumeContentURL` can likewise
+point to a hostname or IP address:
 
 ```go
 c, err := client.New(client.Options{
-	APIKey:       apiKey,
-	APIURL:       "http://10.10.0.5:8080",
-	InsecureHTTP: true,
+	APIKey:           apiKey,
+	APIURL:           "http://10.10.0.5:8080",
+	VolumeContentURL: "http://10.10.0.5:8081",
+	InsecureHTTP:     true,
 })
 ```
+
+Set `UCLOUD_SANDBOX_VOLUME_CONTENT_URL` to configure the volume content endpoint
+through the environment instead.
 
 ## Packages
 
@@ -81,7 +87,8 @@ c, err := client.New(client.Options{
 | [`pkg/client`](pkg/client) | Entry point. `New` plus the services below. |
 | [`pkg/sandbox`](pkg/sandbox) | Sandboxes, and the commands, files and PTYs inside them. |
 | [`pkg/template`](pkg/template) | Building the images sandboxes boot from. |
-| [`pkg/volume`](pkg/volume) | Persistent volumes. |
+| [`pkg/volume`](pkg/volume) | Volume management, including capacity and usage. |
+| [`pkg/volume/content`](pkg/volume/content) | Reading and writing files in a volume. |
 | [`pkg/secret`](pkg/secret) | Project secrets. |
 | [`pkg/errdefs`](pkg/errdefs) | Error types, and the mappings that produce them. |
 | [`pkg/transport`](pkg/transport) | HTTP plumbing. Rarely used directly. |
@@ -103,8 +110,9 @@ if errors.As(err, &exit) {
 
 ## Development
 
-The clients in `pkg/api` and `pkg/envd` are generated. Regenerating them needs
-the submodules:
+The clients in `pkg/api`, `pkg/envd`, and `pkg/volume` are generated. The
+volume clients can be regenerated with `make generate-volume`; regenerating all
+clients needs the submodules:
 
 ```bash
 git submodule update --init
@@ -114,7 +122,10 @@ make test
 
 The generated code is committed, so `go get` works without any of this.
 
-`spec/openapi.yml` describes the control plane. envd's specs come from
+`spec/openapi.yml` describes the control plane. Volume management and content
+clients are generated from `spec/openapi-volume.yaml` and
+`spec/openapi-volumecontent.yaml`; run `make generate-volume` to regenerate
+only those clients. envd's specs come from
 [e2b-dev/runtime](https://github.com/e2b-dev/runtime), vendored under
 `submodules/` and pinned to a tag; see [`pkg/envd/README.md`](pkg/envd/README.md).
 `submodules/ucloud-sandbox-sdk-python` is the Python SDK, kept only as a

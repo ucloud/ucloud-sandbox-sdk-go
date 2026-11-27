@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
+	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/api"
 )
 
 // Delete removes a volume and everything in it. A volume that does not exist is
@@ -11,8 +12,8 @@ import (
 // failure.
 //
 // DELETE /volumes/{volumeID}
-func (s *Service) Delete(ctx context.Context, volumeID string) (bool, error) {
-	resp, err := s.t.API().DeleteVolumesVolumeIDWithResponse(ctx, volumeID)
+func (s *Service) Delete(ctx context.Context, volumeID api.VolumeID) (bool, error) {
+	resp, err := s.api.DeleteVolumesVolumeIDWithResponse(ctx, volumeID)
 	if err != nil {
 		return false, err
 	}

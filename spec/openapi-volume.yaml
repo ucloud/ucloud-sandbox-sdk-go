@@ -1,0 +1,364 @@
+openapi: 3.0.0
+
+info:
+  version: 0.1.0
+  title: UCloud Sandbox Volume API
+  description: |
+    Extends the native E2B Volume API with capacity management and usage reporting.
+    All requests require X-API-Key authentication.
+
+servers:
+  - url: /
+    description: API base URL.
+
+security:
+  - ApiKeyAuth: []
+
+tags:
+  - name: volumes
+    description: Volume management.
+
+paths:
+  /volumes:
+    get:
+      operationId: GetVolumes
+      summary: List team volumes
+      description: List the current team's volumes. Extended volumes include capacity and usage.
+      tags: [volumes]
+      responses:
+        "200":
+          description: Team volumes. Capacity fields are omitted for legacy volumes.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Volume"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+
+    post:
+      operationId: PostVolumes
+      summary: Create team volume
+      description: Create a volume with an optional capacity. Project volume count and per-volume size limits apply.
+      tags: [volumes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewVolume"
+      responses:
+        "201":
+          description: Volume created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Volume"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "402":
+          $ref: "#/components/responses/402"
+        "403":
+          $ref: "#/components/responses/403"
+        "409":
+          $ref: "#/components/responses/409"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+        "507":
+          $ref: "#/components/responses/507"
+
+  /volumes/{volumeID}:
+    parameters:
+      - $ref: "#/components/parameters/volumeID"
+
+    get:
+      operationId: GetVolumesVolumeID
+      summary: Get team volume
+      description: Get volume information. Extended volumes include capacity and usage.
+      tags: [volumes]
+      responses:
+        "200":
+          description: Volume information. Capacity fields are omitted for legacy volumes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Volume"
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+
+    delete:
+      operationId: DeleteVolumesVolumeID
+      summary: Delete team volume
+      description: >-
+        Delete a volume. Volumes mounted by running or paused sandboxes cannot be deleted.
+        Extended volumes also remove stored data and release quota before returning success.
+      tags: [volumes]
+      responses:
+        "204":
+          description: Volume deleted.
+        "400":
+          $ref: "#/components/responses/400"
+        "401":
+          $ref: "#/components/responses/401"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "409":
+          $ref: "#/components/responses/409"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+
+  /volumes/{volumeID}/resize:
+    parameters:
+      - $ref: "#/components/parameters/volumeID"
+
+    post:
+      operationId: ResizeVolume
+      summary: Expand a team volume
+      description: >-
+        Increase an extended volume's total size in whole GiB. The requested size must be greater
+        than the current size. The project per-volume size limit applies. Legacy volumes cannot be resized.
+      tags: [volumes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResizeVolumeRequest"
+      responses:
+        "200":
+          description: Volume expanded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Volume"
+        "400":
+          description: Invalid size, or the requested size is not greater than the current size.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          $ref: "#/components/responses/401"
+        "402":
+          $ref: "#/components/responses/402"
+        "403":
+          $ref: "#/components/responses/403"
+        "404":
+          $ref: "#/components/responses/404"
+        "409":
+          description: Legacy volumes cannot be resized, or the project per-volume size limit would be exceeded.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          $ref: "#/components/responses/500"
+        "503":
+          $ref: "#/components/responses/503"
+        "507":
+          $ref: "#/components/responses/507"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+
+  parameters:
+    volumeID:
+      name: volumeID
+      in: path
+      required: true
+      description: UUID of a volume owned by the authenticated team.
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    "400":
+      description: Invalid request parameters.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "401":
+      description: Missing or invalid API key.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "402":
+      description: Outstanding payment prevents this operation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "403":
+      description: Volume access is disabled for the account, or the operation is not permitted.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "404":
+      description: Volume not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "409":
+      description: >-
+        Volume name already exists, the volume is in use, or a project volume count or per-volume size limit would be exceeded.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "500":
+      description: Internal server error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "503":
+      description: Service temporarily unavailable.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+    "507":
+      description: Insufficient storage space.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+
+  schemas:
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+          description: HTTP status code.
+        message:
+          type: string
+          description: Human-readable error message.
+
+    VolumeName:
+      type: string
+      minLength: 1
+      maxLength: 250
+      pattern: ^[a-zA-Z0-9_-]+$
+      example: project-data
+
+    NewVolume:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          $ref: "#/components/schemas/VolumeName"
+        totalSizeGiB:
+          type: integer
+          format: int64
+          minimum: 1
+          default: 1
+          description: Requested size in whole GiB (1 GiB = 1073741824 bytes). Defaults to 1 GiB.
+      example:
+        name: project-data
+        totalSizeGiB: 1
+
+    ResizeVolumeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - totalSizeGiB
+      properties:
+        totalSizeGiB:
+          type: integer
+          format: int64
+          minimum: 1
+          description: New total size in whole GiB. Must be greater than the current total size.
+      example:
+        totalSizeGiB: 2
+
+    Volume:
+      type: object
+      required:
+        - volumeID
+        - name
+      properties:
+        volumeID:
+          type: string
+          format: uuid
+          description: Unique volume ID.
+        name:
+          $ref: "#/components/schemas/VolumeName"
+        totalSizeGiB:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Total size in whole GiB. Omitted for legacy volumes.
+        usedSizeGiB:
+          type: number
+          format: double
+          minimum: 0
+          description: Used size in GiB, including fractional values. Omitted for legacy volumes.
+        availableSizeGiB:
+          type: number
+          format: double
+          minimum: 0
+          description: Available size in GiB, including fractional values. Omitted for legacy volumes.
+        token:
+          type: string
+          description: Content access token for legacy volumes, when returned by the native API.
+        domain:
+          type: string
+          description: Content domain for legacy volumes, when returned by the native API.
+        createdAt:
+          type: string
+          format: date-time
+          description: Volume creation time in RFC3339 format, when available.
+      example:
+        volumeID: 550e8400-e29b-41d4-a716-446655440000
+        name: project-data
+        totalSizeGiB: 1
+        usedSizeGiB: 0.25
+        availableSizeGiB: 0.75
