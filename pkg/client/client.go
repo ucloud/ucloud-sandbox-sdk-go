@@ -19,8 +19,6 @@ import (
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/template"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/transport"
 	"github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume"
-	volumev2 "github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/v2"
-	volumev2api "github.com/ucloud/ucloud-sandbox-sdk-go/pkg/volume/v2/api"
 )
 
 // Options configures a Client.
@@ -38,7 +36,6 @@ type Client struct {
 	sandboxes *sandbox.Service
 	templates *template.Service
 	volumes   *volume.Service
-	volumesV2 *volumev2.Service
 	secrets   *secret.Service
 }
 
@@ -49,17 +46,11 @@ func New(opts Options) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
-	volumesV2, err := volumev2.NewService(t)
-	if err != nil {
-		return nil, err
-	}
-
 	return &Client{
 		t:         t,
 		sandboxes: sandbox.NewService(t),
 		templates: template.NewService(t),
 		volumes:   volume.NewService(t),
-		volumesV2: volumesV2,
 		secrets:   secret.NewService(t),
 	}, nil
 }
@@ -72,15 +63,6 @@ func (c *Client) Templates() *template.Service { return c.templates }
 
 // Volumes manages persistent volumes.
 func (c *Client) Volumes() *volume.Service { return c.volumes }
-
-// VolumesV2 manages project-scoped cloud NFS volumes.
-func (c *Client) VolumesV2() *volumev2.Service { return c.volumesV2 }
-
-// VolumeContentV2 reads and writes the files of the v2 volume with the given
-// UUID, through the volume content API at volumecontent.{domain}.
-func (c *Client) VolumeContentV2(volumeID volumev2api.VolumeID) *volumev2.Content {
-	return c.volumesV2.Content(volumeID)
-}
 
 // Secrets manages project secrets.
 func (c *Client) Secrets() *secret.Service { return c.secrets }

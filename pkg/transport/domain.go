@@ -18,14 +18,13 @@ const (
 
 // Environment variables read when the corresponding Config field is empty.
 const (
-	EnvAPIKey           = "UCLOUD_SANDBOX_API_KEY"
-	EnvRegion           = "UCLOUD_SANDBOX_REGION"
-	EnvDomain           = "UCLOUD_SANDBOX_DOMAIN"
-	EnvAPIURL           = "UCLOUD_SANDBOX_API_URL"
-	EnvVolumeContentURL = "UCLOUD_SANDBOX_VOLUME_CONTENT_URL"
-	EnvSandboxURL       = "UCLOUD_SANDBOX_URL"
-	EnvDebug            = "UCLOUD_SANDBOX_DEBUG"
-	EnvInsecureHTTP     = "UCLOUD_SANDBOX_INSECURE_HTTP"
+	EnvAPIKey       = "UCLOUD_SANDBOX_API_KEY"
+	EnvRegion       = "UCLOUD_SANDBOX_REGION"
+	EnvDomain       = "UCLOUD_SANDBOX_DOMAIN"
+	EnvAPIURL       = "UCLOUD_SANDBOX_API_URL"
+	EnvSandboxURL   = "UCLOUD_SANDBOX_URL"
+	EnvDebug        = "UCLOUD_SANDBOX_DEBUG"
+	EnvInsecureHTTP = "UCLOUD_SANDBOX_INSECURE_HTTP"
 )
 
 // cnRegionPrefixes are the region prefixes served from mainland China, which

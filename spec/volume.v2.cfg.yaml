@@ -1,9 +1,0 @@
-# The volume extension has its own schema and generated client so its types
-# do not collide with the native E2B volume API.
-package: api
-generate:
-  models: true
-  client: true
-  embedded-spec: false
-output-options:
-  skip-prune: true

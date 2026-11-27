@@ -7,11 +7,11 @@ ENVDSPEC := $(ROOT)/submodules/e2b-runtime/packages/envd/spec
 # to them below is absolute.
 GOTOOL := cd $(ROOT)/tools && go tool
 
-.PHONY: generate generate-volume-v2 build test lint tidy
+.PHONY: generate build test lint tidy
 
 ## generate: regenerate API clients from the OpenAPI and proto specs.
 ## Requires the submodules: git submodule update --init
-generate: generate-volume-v2
+generate:
 	$(GOTOOL) oapi-codegen -config $(ROOT)/spec/api.models.cfg.yaml \
 	  -o $(ROOT)/pkg/api/types.gen.go $(ROOT)/spec/openapi.yml
 	$(GOTOOL) oapi-codegen -config $(ROOT)/spec/api.client.cfg.yaml \
@@ -23,14 +23,6 @@ generate: generate-volume-v2
 	  --path $(ENVDSPEC)/process \
 	  --path $(ENVDSPEC)/filesystem
 	gofmt -w $(ROOT)/pkg/api $(ROOT)/pkg/envd
-
-## generate-volume-v2: regenerate the independent /v2/volumes and
-## /v2/volumecontent clients.
-generate-volume-v2:
-	$(GOTOOL) oapi-codegen -config $(ROOT)/spec/volume.v2.cfg.yaml \
-	  -o $(ROOT)/pkg/volume/v2/api/api.gen.go $(ROOT)/spec/openapi-volume.yaml
-	$(GOTOOL) oapi-codegen -config $(ROOT)/spec/volumecontent.v2.cfg.yaml \
-	  -o $(ROOT)/pkg/volume/v2/contentapi/api.gen.go $(ROOT)/spec/openapi-volume-content.yaml
 
 build:
 	go build ./...
